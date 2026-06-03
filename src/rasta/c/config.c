@@ -318,8 +318,8 @@ int isWirelessNic(const char* ifname, char* protocol) {
     int sock = -1;
     struct iwreq pwrq;
     memset(&pwrq, 0, sizeof(pwrq));
-    strncpy(pwrq.ifr_name, ifname, IFNAMSIZ);
-
+    //strncpy(pwrq.ifr_name, ifname, IFNAMSIZ);
+    snprintf(pwrq.ifr_name, IFNAMSIZ, "%s", ifname);
     if ((sock = socket(AF_INET, SOCK_STREAM, 0)) == -1) {
         perror("socket");
         return 0;
