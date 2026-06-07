@@ -3,7 +3,9 @@
 C library implementation of the Rail Safe Transport Application (RaSTA) protocol.
 
 ## Deployment
+
 ### Unit tests
+
 see [CUnit HowTo](md_doc/cunit.md)  
 
 ### Gradle
@@ -16,11 +18,11 @@ see [Getting started](md_doc/getting_started.md)
 
 ### Raspberry Pi / ARM architecture
 
-see [Building on Raspberry Pi](md_doc/raspberry_pi.md) 
+see [Building on Raspberry Pi](md_doc/raspberry_pi.md)
 
 ### Docker
 
-see [Docker HowTo](md_doc/docker.md) 
+see [Docker HowTo](md_doc/docker.md)
 
 ## Built With
 
@@ -29,7 +31,6 @@ see [Docker HowTo](md_doc/docker.md)
 * [CppCheck](http://cppcheck.sourceforge.net/) - For static code analysis
 * [Doxygen](http://www.stack.nl/~dimitri/doxygen/) - Documentation generation
 * [CMake](https://cmake.org/)  - Compilation on Raspberry Pi / ARM
-
 
 ## Contact
 

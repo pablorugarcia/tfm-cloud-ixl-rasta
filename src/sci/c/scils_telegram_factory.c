@@ -24,7 +24,7 @@ sci_telegram * scils_create_show_signal_aspect(char * sender, char * receiver, s
     sci_telegram * telegram = sci_create_base_telegram(SCI_PROTOCOL_LS, sender, receiver,
                                                        SCILS_MESSAGE_TYPE_SHOW_SIGNAL_ASPECT);
 
-    telegram->payload.used_bytes = 9;
+    telegram->payload.used_bytes = 9; /*Out of the available bytes of payload.data, only the first 9 are useful*/
     telegram->payload.data[0] = signal_aspect.main;
     telegram->payload.data[1] = signal_aspect.additional;
     telegram->payload.data[2] = signal_aspect.zs3;

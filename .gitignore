@@ -22,3 +22,6 @@ assets/usr
 
 # exclude documentation files
 doc/
+
+# scils_rasta_dependency_atlas.html
+*:Zone.Identifier

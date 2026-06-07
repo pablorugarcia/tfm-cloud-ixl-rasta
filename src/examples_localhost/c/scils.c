@@ -64,7 +64,7 @@ void onSignalAspectStatus(scils_t * ls, char * sender, scils_signal_aspect signa
 int main(int argc, char *argv[]){
 
     if (argc != 2) printHelpAndExit();
-
+    if (strcmp(argv[1], "s") != 0 && strcmp(argv[1], "c") != 0) printHelpAndExit();
     struct rasta_handle h;
 
     struct RastaIPData toServer[2];
