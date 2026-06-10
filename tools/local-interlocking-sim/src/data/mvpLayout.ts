@@ -42,5 +42,6 @@ export const mvpInfrastructureState = {
       state: 'FREE',
     },
   ],
+  trains: [],
   eventLog: [],
 } as const satisfies InfrastructureState

@@ -1,4 +1,4 @@
-export const TRACK_CIRCUIT_STATES = ['CLEAR', 'OCCUPIED', 'RESERVED'] as const
+export const TRACK_CIRCUIT_STATES = ['CLEAR', 'OCCUPIED'] as const
 export type TrackCircuitState = (typeof TRACK_CIRCUIT_STATES)[number]
 
 export const POINT_POSITIONS = ['NORMAL', 'REVERSE'] as const
@@ -49,7 +49,7 @@ export type RouteRequestRejectionReason =
   | {
       readonly code: 'TRACK_CIRCUIT_RESERVED'
       readonly trackCircuitId: TrackCircuitId
-      readonly reservedByRouteId?: RouteId
+      readonly reservedByRouteId?: string
     }
   | {
       readonly code: 'CONFLICTING_ROUTE_LOCKED'
@@ -58,22 +58,54 @@ export type RouteRequestRejectionReason =
   | {
       readonly code: 'POINT_LOCKED'
       readonly pointId: PointId
-      readonly lockedByRouteId?: RouteId
+      readonly lockedByRouteId?: string
     }
 
-export const EVENT_LOG_ENTRY_TYPES = ['ROUTE_REJECTED', 'ROUTE_LOCKED'] as const
+export const TRAIN_OPERATION_REJECTION_REASONS = [
+  'CIRCUIT_NOT_FOUND',
+  'TRACK_CIRCUIT_OCCUPIED',
+  'TRAIN_NOT_FOUND',
+] as const
+export type TrainOperationRejectionReasonCode =
+  (typeof TRAIN_OPERATION_REJECTION_REASONS)[number]
+
+export type TrainOperationRejectionReason =
+  | {
+      readonly code: 'CIRCUIT_NOT_FOUND'
+      readonly circuitId: string
+    }
+  | {
+      readonly code: 'TRACK_CIRCUIT_OCCUPIED'
+      readonly trackCircuitId: string
+    }
+  | {
+      readonly code: 'TRAIN_NOT_FOUND'
+      readonly trainId: string
+    }
+
+export type RouteReleaseRejectionReason = {
+  readonly code: 'ROUTE_NOT_FOUND'
+}
+
+export const EVENT_LOG_ENTRY_TYPES = [
+  'ROUTE_REJECTED',
+  'ROUTE_LOCKED',
+  'TRAIN_PLACED',
+  'TRAIN_MOVED',
+  'ROUTE_RELEASED',
+] as const
 export type EventLogEntryType = (typeof EVENT_LOG_ENTRY_TYPES)[number]
 
 export interface TrackCircuit {
   readonly id: TrackCircuitId
   readonly state: TrackCircuitState
-  readonly reservedByRouteId?: RouteId
+  readonly reservedByRouteId?: string
 }
 
 export interface Point {
   readonly id: PointId
   readonly position: PointPosition
-  readonly lockedByRouteId?: RouteId
+  readonly lockedByRouteId?: string
 }
 
 export interface Signal {
@@ -102,8 +134,21 @@ export interface EventLogEntry {
   readonly id: string
   readonly sequence: number
   readonly type: EventLogEntryType
-  readonly routeId: string
-  readonly reason?: RouteRequestRejectionReason
+  readonly routeId?: string
+  readonly trainId?: string
+  readonly circuitId?: string
+  readonly fromCircuitId?: string
+  readonly toCircuitId?: string
+  readonly reason?:
+    | RouteRequestRejectionReason
+    | TrainOperationRejectionReason
+    | RouteReleaseRejectionReason
+}
+
+export interface Train {
+  readonly id: string
+  readonly currentCircuitId: string
+  readonly authorisedRouteId?: string
 }
 
 export interface InfrastructureState {
@@ -111,6 +156,7 @@ export interface InfrastructureState {
   readonly points: readonly Point[]
   readonly trackCircuits: readonly TrackCircuit[]
   readonly routes: readonly Route[]
+  readonly trains: readonly Train[]
   readonly eventLog: readonly EventLogEntry[]
 }
 
@@ -127,5 +173,37 @@ export interface RouteRequestRejected {
   readonly accepted: false
   readonly routeId: string
   readonly reason: RouteRequestRejectionReason
+  readonly state: InfrastructureState
+}
+
+export type TrainOperationResult =
+  | TrainOperationAccepted
+  | TrainOperationRejected
+
+export interface TrainOperationAccepted {
+  readonly accepted: true
+  readonly trainId: string
+  readonly state: InfrastructureState
+}
+
+export interface TrainOperationRejected {
+  readonly accepted: false
+  readonly trainId?: string
+  readonly reason: TrainOperationRejectionReason
+  readonly state: InfrastructureState
+}
+
+export type RouteReleaseResult = RouteReleaseAccepted | RouteReleaseRejected
+
+export interface RouteReleaseAccepted {
+  readonly accepted: true
+  readonly routeId: RouteId
+  readonly state: InfrastructureState
+}
+
+export interface RouteReleaseRejected {
+  readonly accepted: false
+  readonly routeId: string
+  readonly reason: RouteReleaseRejectionReason
   readonly state: InfrastructureState
 }

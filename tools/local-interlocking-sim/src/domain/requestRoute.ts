@@ -1,7 +1,6 @@
 import { DEFAULT_SIGNAL_ASPECT } from './types'
+import { appendEvent } from './events'
 import type {
-  EventLogEntry,
-  EventLogEntryType,
   InfrastructureState,
   Point,
   RequiredPointPosition,
@@ -37,7 +36,7 @@ export function requestRoute(
 
   const reservedTrackCircuit = findRequiredTrackCircuit(route, state, (trackCircuit) => {
     return (
-      trackCircuit.state === 'RESERVED' &&
+      trackCircuit.reservedByRouteId !== undefined &&
       trackCircuit.reservedByRouteId !== route.id
     )
   })
@@ -87,8 +86,10 @@ export function requestRoute(
       points: setAndLockRequiredPoints(state.points, route),
       signals: setEntrySignalAspect(state.signals, route, route.commandedAspect),
     },
-    'ROUTE_LOCKED',
-    route.id,
+    {
+      type: 'ROUTE_LOCKED',
+      routeId: route.id,
+    },
   )
 
   return {
@@ -109,7 +110,11 @@ function rejectUnknownRoute(
     accepted: false,
     routeId,
     reason,
-    state: appendEvent(state, 'ROUTE_REJECTED', routeId, reason),
+    state: appendEvent(state, {
+      type: 'ROUTE_REJECTED',
+      routeId,
+      reason,
+    }),
   }
 }
 
@@ -124,9 +129,11 @@ function rejectKnownRoute(
       routes: rejectRequestedRoute(state.routes, route.id),
       signals: setEntrySignalAspect(state.signals, route, DEFAULT_SIGNAL_ASPECT),
     },
-    'ROUTE_REJECTED',
-    route.id,
-    reason,
+    {
+      type: 'ROUTE_REJECTED',
+      routeId: route.id,
+      reason,
+    },
   )
 
   return {
@@ -196,7 +203,6 @@ function reserveRequiredTrackCircuits(
 
     return {
       ...trackCircuit,
-      state: 'RESERVED',
       reservedByRouteId: route.id,
     }
   })
@@ -246,31 +252,4 @@ function setEntrySignalAspect(
       aspect,
     }
   })
-}
-
-function appendEvent(
-  state: InfrastructureState,
-  type: EventLogEntryType,
-  routeId: string,
-  reason?: RouteRequestRejectionReason,
-): InfrastructureState {
-  const sequence = nextEventSequence(state.eventLog)
-  const entry: EventLogEntry = {
-    id: `event-${sequence}`,
-    sequence,
-    type,
-    routeId,
-    reason,
-  }
-
-  return {
-    ...state,
-    eventLog: [...state.eventLog, entry],
-  }
-}
-
-function nextEventSequence(eventLog: readonly EventLogEntry[]): number {
-  return eventLog.reduce((maxSequence, entry) => {
-    return Math.max(maxSequence, entry.sequence)
-  }, 0) + 1
 }

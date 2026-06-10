@@ -26,11 +26,11 @@ describe('requestRoute', () => {
     expect(result.commandedAspect).toBe('PROCEED_MAIN')
     expect(routeById(result.state, 'R_MAIN').state).toBe('LOCKED')
     expect(trackCircuitById(result.state, 'CV_ENTRY')).toMatchObject({
-      state: 'RESERVED',
+      state: 'CLEAR',
       reservedByRouteId: 'R_MAIN',
     })
     expect(trackCircuitById(result.state, 'CV_1')).toMatchObject({
-      state: 'RESERVED',
+      state: 'CLEAR',
       reservedByRouteId: 'R_MAIN',
     })
     expect(pointById(result.state, 'P1')).toMatchObject({
@@ -55,11 +55,11 @@ describe('requestRoute', () => {
     expect(result.commandedAspect).toBe('PROCEED_DIVERGING')
     expect(routeById(result.state, 'R_DIVERGING').state).toBe('LOCKED')
     expect(trackCircuitById(result.state, 'CV_ENTRY')).toMatchObject({
-      state: 'RESERVED',
+      state: 'CLEAR',
       reservedByRouteId: 'R_DIVERGING',
     })
     expect(trackCircuitById(result.state, 'CV_2')).toMatchObject({
-      state: 'RESERVED',
+      state: 'CLEAR',
       reservedByRouteId: 'R_DIVERGING',
     })
     expect(pointById(result.state, 'P1')).toMatchObject({
@@ -258,7 +258,6 @@ function withTrackCircuitReservedBy(
 
       return {
         ...trackCircuit,
-        state: 'RESERVED',
         reservedByRouteId: routeId,
       }
     }),

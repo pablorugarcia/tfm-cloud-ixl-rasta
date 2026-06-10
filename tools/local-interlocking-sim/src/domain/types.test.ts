@@ -6,6 +6,7 @@ import {
   ROUTE_REQUEST_REJECTION_REASONS,
   ROUTE_STATES,
   SIGNAL_ASPECTS,
+  TRAIN_OPERATION_REJECTION_REASONS,
   TRACK_CIRCUIT_STATES,
 } from './types'
 
@@ -21,7 +22,7 @@ describe('SignalAspect', () => {
 
 describe('domain state vocabularies', () => {
   it('defines the supported track circuit states', () => {
-    expect(TRACK_CIRCUIT_STATES).toEqual(['CLEAR', 'OCCUPIED', 'RESERVED'])
+    expect(TRACK_CIRCUIT_STATES).toEqual(['CLEAR', 'OCCUPIED'])
   })
 
   it('defines the supported point positions', () => {
@@ -49,6 +50,20 @@ describe('domain state vocabularies', () => {
   })
 
   it('defines the supported event log entry types', () => {
-    expect(EVENT_LOG_ENTRY_TYPES).toEqual(['ROUTE_REJECTED', 'ROUTE_LOCKED'])
+    expect(EVENT_LOG_ENTRY_TYPES).toEqual([
+      'ROUTE_REJECTED',
+      'ROUTE_LOCKED',
+      'TRAIN_PLACED',
+      'TRAIN_MOVED',
+      'ROUTE_RELEASED',
+    ])
+  })
+
+  it('defines the supported train operation rejection reasons', () => {
+    expect(TRAIN_OPERATION_REJECTION_REASONS).toEqual([
+      'CIRCUIT_NOT_FOUND',
+      'TRACK_CIRCUIT_OCCUPIED',
+      'TRAIN_NOT_FOUND',
+    ])
   })
 })
