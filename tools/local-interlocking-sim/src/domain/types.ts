@@ -65,6 +65,7 @@ export const TRAIN_OPERATION_REJECTION_REASONS = [
   'CIRCUIT_NOT_FOUND',
   'TRACK_CIRCUIT_OCCUPIED',
   'TRAIN_NOT_FOUND',
+  'TRAIN_ALREADY_EXISTS',
 ] as const
 export type TrainOperationRejectionReasonCode =
   (typeof TRAIN_OPERATION_REJECTION_REASONS)[number]
@@ -82,9 +83,18 @@ export type TrainOperationRejectionReason =
       readonly code: 'TRAIN_NOT_FOUND'
       readonly trainId: string
     }
+  | {
+      readonly code: 'TRAIN_ALREADY_EXISTS'
+      readonly trainId: string
+    }
 
 export type RouteReleaseRejectionReason = {
   readonly code: 'ROUTE_NOT_FOUND'
+}
+
+export type FaultInjectionRejectionReason = {
+  readonly code: 'CIRCUIT_NOT_FOUND'
+  readonly circuitId: string
 }
 
 export const EVENT_LOG_ENTRY_TYPES = [
@@ -92,7 +102,11 @@ export const EVENT_LOG_ENTRY_TYPES = [
   'ROUTE_LOCKED',
   'TRAIN_PLACED',
   'TRAIN_MOVED',
+  'TRAIN_OPERATION_REJECTED',
   'ROUTE_RELEASED',
+  'ROUTE_RELEASE_REJECTED',
+  'FAULT_INJECTED',
+  'FAULT_INJECTION_REJECTED',
 ] as const
 export type EventLogEntryType = (typeof EVENT_LOG_ENTRY_TYPES)[number]
 
@@ -143,6 +157,7 @@ export interface EventLogEntry {
     | RouteRequestRejectionReason
     | TrainOperationRejectionReason
     | RouteReleaseRejectionReason
+    | FaultInjectionRejectionReason
 }
 
 export interface Train {
@@ -206,4 +221,61 @@ export interface RouteReleaseRejected {
   readonly routeId: string
   readonly reason: RouteReleaseRejectionReason
   readonly state: InfrastructureState
+}
+
+export type FaultInjectionResult =
+  | FaultInjectionAccepted
+  | FaultInjectionRejected
+
+export interface FaultInjectionAccepted {
+  readonly accepted: true
+  readonly circuitId: string
+  readonly state: InfrastructureState
+}
+
+export interface FaultInjectionRejected {
+  readonly accepted: false
+  readonly circuitId: string
+  readonly reason: FaultInjectionRejectionReason
+  readonly state: InfrastructureState
+}
+
+export const INFRASTRUCTURE_VALIDATION_SEVERITIES = ['ERROR', 'WARNING'] as const
+export type InfrastructureValidationSeverity =
+  (typeof INFRASTRUCTURE_VALIDATION_SEVERITIES)[number]
+
+export const INFRASTRUCTURE_VALIDATION_ISSUE_CODES = [
+  'ROUTE_ENTRY_SIGNAL_NOT_FOUND',
+  'ROUTE_REQUIRED_TRACK_CIRCUIT_NOT_FOUND',
+  'ROUTE_REQUIRED_POINT_NOT_FOUND',
+  'ROUTE_CONFLICT_NOT_FOUND',
+  'TRACK_CIRCUIT_RESERVED_BY_UNKNOWN_ROUTE',
+  'POINT_LOCKED_BY_UNKNOWN_ROUTE',
+  'TRAIN_CURRENT_CIRCUIT_NOT_FOUND',
+  'MULTIPLE_TRAINS_ON_CIRCUIT',
+  'OCCUPIED_CIRCUIT_WITHOUT_EXACTLY_ONE_TRAIN',
+  'TRAIN_ON_NON_OCCUPIED_CIRCUIT',
+  'LOCKED_ROUTE_POINT_NOT_LOCKED',
+  'LOCKED_ROUTE_TRACK_CIRCUIT_NOT_RESERVED',
+  'SIGNAL_ASPECT_WITHOUT_LOCKED_ROUTE',
+  'RELEASED_ROUTE_OWNS_RESERVATION_OR_LOCK',
+] as const
+export type InfrastructureValidationIssueCode =
+  (typeof INFRASTRUCTURE_VALIDATION_ISSUE_CODES)[number]
+
+export interface InfrastructureValidationIssue {
+  readonly code: InfrastructureValidationIssueCode
+  readonly severity: InfrastructureValidationSeverity
+  readonly message: string
+  readonly routeId?: string
+  readonly signalId?: string
+  readonly pointId?: string
+  readonly trackCircuitId?: string
+  readonly trainId?: string
+  readonly relatedRouteId?: string
+}
+
+export interface InfrastructureValidationResult {
+  readonly valid: boolean
+  readonly issues: readonly InfrastructureValidationIssue[]
 }

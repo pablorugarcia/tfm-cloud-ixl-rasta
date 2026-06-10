@@ -55,7 +55,11 @@ describe('domain state vocabularies', () => {
       'ROUTE_LOCKED',
       'TRAIN_PLACED',
       'TRAIN_MOVED',
+      'TRAIN_OPERATION_REJECTED',
       'ROUTE_RELEASED',
+      'ROUTE_RELEASE_REJECTED',
+      'FAULT_INJECTED',
+      'FAULT_INJECTION_REJECTED',
     ])
   })
 
@@ -64,6 +68,7 @@ describe('domain state vocabularies', () => {
       'CIRCUIT_NOT_FOUND',
       'TRACK_CIRCUIT_OCCUPIED',
       'TRAIN_NOT_FOUND',
+      'TRAIN_ALREADY_EXISTS',
     ])
   })
 })

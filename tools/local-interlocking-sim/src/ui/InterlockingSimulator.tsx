@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { requestRoute } from '../domain/requestRoute'
+import { injectTrackCircuitOccupancy } from '../domain/faultInjection'
 import {
   moveTrainToCircuit,
   placeTrain,
@@ -7,6 +8,7 @@ import {
 } from '../domain/trainOperations'
 import type {
   EventLogEntry,
+  FaultInjectionRejectionReason,
   InfrastructureState,
   RouteId,
   RouteReleaseRejectionReason,
@@ -24,6 +26,7 @@ type OperationReason =
   | RouteRequestRejectionReason
   | TrainOperationRejectionReason
   | RouteReleaseRejectionReason
+  | FaultInjectionRejectionReason
 
 export function InterlockingSimulator({ layout }: InterlockingSimulatorProps) {
   const [state, setState] = useState<InfrastructureState>(layout)
@@ -81,20 +84,17 @@ export function InterlockingSimulator({ layout }: InterlockingSimulatorProps) {
   }
 
   function handleToggleCircuitOccupancy(circuitId: TrackCircuitId) {
-    setState((currentState) => ({
-      ...currentState,
-      trackCircuits: currentState.trackCircuits.map((trackCircuit) => {
-        if (trackCircuit.id !== circuitId) {
-          return trackCircuit
-        }
+    const trackCircuit = state.trackCircuits.find(({ id }) => id === circuitId)
+    const nextOccupancy =
+      trackCircuit?.state === 'OCCUPIED' ? 'CLEAR' : 'OCCUPIED'
+    const result = injectTrackCircuitOccupancy(state, circuitId, nextOccupancy)
 
-        return {
-          ...trackCircuit,
-          state: trackCircuit.state === 'OCCUPIED' ? 'CLEAR' : 'OCCUPIED',
-        }
-      }),
-    }))
-    setLastStatus(`${circuitId} occupancy toggled`)
+    setState(result.state)
+    setLastStatus(
+      result.accepted
+        ? `${circuitId} fault injection set ${nextOccupancy}`
+        : `Fault injection rejected: ${formatReason(result.reason)}`,
+    )
   }
 
   return (

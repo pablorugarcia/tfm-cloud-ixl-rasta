@@ -65,6 +65,27 @@ describe('train operations', () => {
       code: 'TRACK_CIRCUIT_OCCUPIED',
       trackCircuitId: 'CV_ENTRY',
     })
+    expect(lastEvent(result.state)).toMatchObject({
+      type: 'TRAIN_OPERATION_REJECTED',
+      trainId: 'T2',
+      reason: result.reason,
+    })
+  })
+
+  it('rejects duplicate train ids', () => {
+    const occupiedState = acceptedState(placeTrain(mvpInfrastructureState, 'T1', 'CV_ENTRY'))
+    const result = placeTrain(occupiedState, 'T1', 'CV_1')
+
+    expect(result.accepted).toBe(false)
+
+    if (result.accepted) {
+      throw new Error('Expected train placement to be rejected')
+    }
+
+    expect(result.reason).toEqual({
+      code: 'TRAIN_ALREADY_EXISTS',
+      trainId: 'T1',
+    })
   })
 
   it('moves a train from CV_ENTRY to CV_1 and clears CV_ENTRY if not reserved', () => {
@@ -126,6 +147,11 @@ describe('train operations', () => {
     expect(result.reason).toEqual({
       code: 'TRAIN_NOT_FOUND',
       trainId: 'UNKNOWN_TRAIN',
+    })
+    expect(lastEvent(result.state)).toMatchObject({
+      type: 'TRAIN_OPERATION_REJECTED',
+      trainId: 'UNKNOWN_TRAIN',
+      reason: result.reason,
     })
   })
 
@@ -204,7 +230,7 @@ describe('route release', () => {
     })
   })
 
-  it('does not incorrectly mark an occupied circuit as clear during release', () => {
+  it('clears reservations from occupied and clear circuits reserved by R_MAIN', () => {
     const lockedState = acceptedState(requestRoute(mvpInfrastructureState, 'R_MAIN'))
     const occupiedState = acceptedState(placeTrain(lockedState, 'T1', 'CV_ENTRY'))
     const result = releaseRoute(occupiedState, 'R_MAIN')
@@ -215,9 +241,61 @@ describe('route release', () => {
       throw new Error('Expected route release to be accepted')
     }
 
-    expect(trackCircuitById(result.state, 'CV_ENTRY')).toMatchObject({
+    expect(trackCircuitById(result.state, 'CV_ENTRY')).toEqual({
+      id: 'CV_ENTRY',
       state: 'OCCUPIED',
-      reservedByRouteId: 'R_MAIN',
+    })
+    expect(trackCircuitById(result.state, 'CV_1')).toEqual({
+      id: 'CV_1',
+      state: 'CLEAR',
+    })
+  })
+
+  it('preserves track circuit state while clearing reservations', () => {
+    const lockedState = acceptedState(requestRoute(mvpInfrastructureState, 'R_MAIN'))
+    const occupiedState = acceptedState(placeTrain(lockedState, 'T1', 'CV_ENTRY'))
+    const result = releaseRoute(occupiedState, 'R_MAIN')
+
+    expect(result.accepted).toBe(true)
+
+    if (!result.accepted) {
+      throw new Error('Expected route release to be accepted')
+    }
+
+    expect(trackCircuitById(result.state, 'CV_ENTRY').state).toBe('OCCUPIED')
+    expect(trackCircuitById(result.state, 'CV_1').state).toBe('CLEAR')
+  })
+
+  it('leaves no clear circuit reserved by R_MAIN after release and train movement away', () => {
+    const lockedState = acceptedState(requestRoute(mvpInfrastructureState, 'R_MAIN'))
+    const occupiedState = acceptedState(placeTrain(lockedState, 'T1', 'CV_ENTRY'))
+    const releasedState = acceptedState(releaseRoute(occupiedState, 'R_MAIN'))
+    const movedState = acceptedState(moveTrainToCircuit(releasedState, 'T1', 'CV_1'))
+
+    expect(
+      movedState.trackCircuits.some((trackCircuit) => {
+        return (
+          trackCircuit.state === 'CLEAR' &&
+          trackCircuit.reservedByRouteId === 'R_MAIN'
+        )
+      }),
+    ).toBe(false)
+  })
+
+  it('appends an event when route release is rejected', () => {
+    const result = releaseRoute(mvpInfrastructureState, 'UNKNOWN_ROUTE')
+
+    expect(result.accepted).toBe(false)
+
+    if (result.accepted) {
+      throw new Error('Expected route release to be rejected')
+    }
+
+    expect(result.reason).toEqual({ code: 'ROUTE_NOT_FOUND' })
+    expect(lastEvent(result.state)).toMatchObject({
+      type: 'ROUTE_RELEASE_REJECTED',
+      routeId: 'UNKNOWN_ROUTE',
+      reason: result.reason,
     })
   })
 
@@ -232,6 +310,33 @@ describe('route release', () => {
     expect(routeById(lockedState, 'R_MAIN').state).toBe('LOCKED')
     expect(pointById(lockedState, 'P1').lockedByRouteId).toBe('R_MAIN')
     expect(signalById(lockedState, 'LS_01').aspect).toBe('PROCEED_MAIN')
+  })
+
+  it('does not mutate input state when train placement is rejected', () => {
+    const before = JSON.stringify(mvpInfrastructureState)
+
+    const result = placeTrain(mvpInfrastructureState, 'T1', 'UNKNOWN_CV')
+
+    expect(result.state).not.toBe(mvpInfrastructureState)
+    expect(JSON.stringify(mvpInfrastructureState)).toBe(before)
+  })
+
+  it('does not mutate input state when train movement is rejected', () => {
+    const before = JSON.stringify(mvpInfrastructureState)
+
+    const result = moveTrainToCircuit(mvpInfrastructureState, 'UNKNOWN_TRAIN', 'CV_1')
+
+    expect(result.state).not.toBe(mvpInfrastructureState)
+    expect(JSON.stringify(mvpInfrastructureState)).toBe(before)
+  })
+
+  it('does not mutate input state when route release is rejected', () => {
+    const before = JSON.stringify(mvpInfrastructureState)
+
+    const result = releaseRoute(mvpInfrastructureState, 'UNKNOWN_ROUTE')
+
+    expect(result.state).not.toBe(mvpInfrastructureState)
+    expect(JSON.stringify(mvpInfrastructureState)).toBe(before)
   })
 })
 

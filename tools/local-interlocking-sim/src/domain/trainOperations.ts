@@ -9,6 +9,7 @@ import type {
   Signal,
   TrackCircuit,
   Train,
+  TrainOperationRejectionReason,
   TrainOperationResult,
 } from './types'
 
@@ -17,30 +18,27 @@ export function placeTrain(
   trainId: string,
   circuitId: string,
 ): TrainOperationResult {
+  if (findTrain(state, trainId) !== undefined) {
+    return rejectTrainOperation(state, trainId, {
+      code: 'TRAIN_ALREADY_EXISTS',
+      trainId,
+    })
+  }
+
   const targetCircuit = findTrackCircuit(state, circuitId)
 
   if (targetCircuit === undefined) {
-    return {
-      accepted: false,
-      trainId,
-      reason: {
-        code: 'CIRCUIT_NOT_FOUND',
-        circuitId,
-      },
-      state,
-    }
+    return rejectTrainOperation(state, trainId, {
+      code: 'CIRCUIT_NOT_FOUND',
+      circuitId,
+    })
   }
 
   if (targetCircuit.state === 'OCCUPIED') {
-    return {
-      accepted: false,
-      trainId,
-      reason: {
-        code: 'TRACK_CIRCUIT_OCCUPIED',
-        trackCircuitId: circuitId,
-      },
-      state,
-    }
+    return rejectTrainOperation(state, trainId, {
+      code: 'TRACK_CIRCUIT_OCCUPIED',
+      trackCircuitId: circuitId,
+    })
   }
 
   const placedState = appendEvent(
@@ -86,29 +84,19 @@ export function moveTrainToCircuit(
   const train = findTrain(state, trainId)
 
   if (train === undefined) {
-    return {
-      accepted: false,
+    return rejectTrainOperation(state, trainId, {
+      code: 'TRAIN_NOT_FOUND',
       trainId,
-      reason: {
-        code: 'TRAIN_NOT_FOUND',
-        trainId,
-      },
-      state,
-    }
+    })
   }
 
   const targetCircuit = findTrackCircuit(state, nextCircuitId)
 
   if (targetCircuit === undefined) {
-    return {
-      accepted: false,
-      trainId,
-      reason: {
-        code: 'CIRCUIT_NOT_FOUND',
-        circuitId: nextCircuitId,
-      },
-      state,
-    }
+    return rejectTrainOperation(state, trainId, {
+      code: 'CIRCUIT_NOT_FOUND',
+      circuitId: nextCircuitId,
+    })
   }
 
   const occupyingTrain = state.trains.find((candidate) => {
@@ -119,15 +107,10 @@ export function moveTrainToCircuit(
     targetCircuit.state === 'OCCUPIED' &&
     (occupyingTrain === undefined || occupyingTrain.id !== trainId)
   ) {
-    return {
-      accepted: false,
-      trainId,
-      reason: {
-        code: 'TRACK_CIRCUIT_OCCUPIED',
-        trackCircuitId: nextCircuitId,
-      },
-      state,
-    }
+    return rejectTrainOperation(state, trainId, {
+      code: 'TRACK_CIRCUIT_OCCUPIED',
+      trackCircuitId: nextCircuitId,
+    })
   }
 
   const movedState = appendEvent(
@@ -171,13 +154,19 @@ export function releaseRoute(
   const route = state.routes.find((candidate) => candidate.id === routeId)
 
   if (route === undefined) {
+    const reason = {
+      code: 'ROUTE_NOT_FOUND',
+    } as const
+
     return {
       accepted: false,
       routeId,
-      reason: {
-        code: 'ROUTE_NOT_FOUND',
-      },
-      state,
+      reason,
+      state: appendEvent(state, {
+        type: 'ROUTE_RELEASE_REJECTED',
+        routeId,
+        reason,
+      }),
     }
   }
 
@@ -209,6 +198,23 @@ function findTrackCircuit(
   return state.trackCircuits.find((trackCircuit) => {
     return trackCircuit.id === circuitId
   })
+}
+
+function rejectTrainOperation(
+  state: InfrastructureState,
+  trainId: string,
+  reason: TrainOperationRejectionReason,
+): TrainOperationResult {
+  return {
+    accepted: false,
+    trainId,
+    reason,
+    state: appendEvent(state, {
+      type: 'TRAIN_OPERATION_REJECTED',
+      trainId,
+      reason,
+    }),
+  }
 }
 
 function findTrain(
@@ -267,22 +273,11 @@ function clearRouteReservations(
       return trackCircuit
     }
 
-    if (isCircuitOccupiedByTrain(state, trackCircuit.id)) {
-      return trackCircuit
-    }
-
     return {
       id: trackCircuit.id,
       state: trackCircuit.state,
     }
   })
-}
-
-function isCircuitOccupiedByTrain(
-  state: InfrastructureState,
-  circuitId: string,
-): boolean {
-  return state.trains.some((train) => train.currentCircuitId === circuitId)
 }
 
 function unlockRoutePoints(

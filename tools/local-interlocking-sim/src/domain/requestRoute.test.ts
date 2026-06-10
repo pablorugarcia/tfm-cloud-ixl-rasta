@@ -161,6 +161,41 @@ describe('requestRoute', () => {
     })
   })
 
+  it('rejects R_DIVERGING with CONFLICTING_ROUTE_LOCKED after R_MAIN is locked', () => {
+    const lockedState = acceptedState(requestRoute(mvpInfrastructureState, 'R_MAIN'))
+    const result = requestRoute(lockedState, 'R_DIVERGING')
+
+    expect(result.accepted).toBe(false)
+
+    if (result.accepted) {
+      throw new Error('Expected R_DIVERGING to be rejected')
+    }
+
+    expect(result.reason).toEqual({
+      code: 'CONFLICTING_ROUTE_LOCKED',
+      conflictingRouteId: 'R_MAIN',
+    })
+  })
+
+  it('does not change LS_01 away from R_MAIN commanded aspect after rejecting R_DIVERGING', () => {
+    const lockedState = acceptedState(requestRoute(mvpInfrastructureState, 'R_MAIN'))
+    const result = requestRoute(lockedState, 'R_DIVERGING')
+
+    expect(signalById(result.state, 'LS_01').aspect).toBe('PROCEED_MAIN')
+  })
+
+  it('does not corrupt the already locked route state after a rejected request', () => {
+    const lockedState = acceptedState(requestRoute(mvpInfrastructureState, 'R_MAIN'))
+    const result = requestRoute(lockedState, 'R_DIVERGING')
+
+    expect(routeById(result.state, 'R_MAIN').state).toBe('LOCKED')
+    expect(routeById(result.state, 'R_DIVERGING').state).toBe('FREE')
+    expect(trackCircuitById(result.state, 'CV_ENTRY').reservedByRouteId).toBe(
+      'R_MAIN',
+    )
+    expect(pointById(result.state, 'P1').lockedByRouteId).toBe('R_MAIN')
+  })
+
   it('rejects R_DIVERGING if P1 is locked by R_MAIN', () => {
     const state = withPointLockedBy(mvpInfrastructureState, 'P1', 'R_MAIN')
     const result = requestRoute(state, 'R_DIVERGING')
@@ -198,6 +233,14 @@ describe('requestRoute', () => {
     })
   })
 
+  it('does not alter signals, points, or track circuits when an unknown route is rejected', () => {
+    const result = requestRoute(mvpInfrastructureState, 'UNKNOWN_ROUTE')
+
+    expect(result.state.signals).toBe(mvpInfrastructureState.signals)
+    expect(result.state.points).toBe(mvpInfrastructureState.points)
+    expect(result.state.trackCircuits).toBe(mvpInfrastructureState.trackCircuits)
+  })
+
   it('keeps LS_01 at STOP when a route is rejected', () => {
     const state = withTrackCircuitState(mvpInfrastructureState, 'CV_1', 'OCCUPIED')
     const result = requestRoute(state, 'R_MAIN')
@@ -222,7 +265,25 @@ describe('requestRoute', () => {
     expect(trackCircuitById(mvpInfrastructureState, 'CV_ENTRY').state).toBe('CLEAR')
     expect(signalById(mvpInfrastructureState, 'LS_01').aspect).toBe('STOP')
   })
+
+  it('does not mutate the input state when a request is rejected', () => {
+    const lockedState = acceptedState(requestRoute(mvpInfrastructureState, 'R_MAIN'))
+    const before = JSON.stringify(lockedState)
+
+    const result = requestRoute(lockedState, 'R_DIVERGING')
+
+    expect(result.state).not.toBe(lockedState)
+    expect(JSON.stringify(lockedState)).toBe(before)
+  })
 })
+
+function acceptedState(result: ReturnType<typeof requestRoute>): InfrastructureState {
+  if (!result.accepted) {
+    throw new Error('Expected accepted route request')
+  }
+
+  return result.state
+}
 
 function withTrackCircuitState(
   state: InfrastructureState,

@@ -1,4 +1,3 @@
-import { DEFAULT_SIGNAL_ASPECT } from './types'
 import { appendEvent } from './events'
 import type {
   InfrastructureState,
@@ -21,32 +20,6 @@ export function requestRoute(
 
   if (route === undefined) {
     return rejectUnknownRoute(state, routeId)
-  }
-
-  const occupiedTrackCircuit = findRequiredTrackCircuit(route, state, (trackCircuit) => {
-    return trackCircuit.state === 'OCCUPIED'
-  })
-
-  if (occupiedTrackCircuit !== undefined) {
-    return rejectKnownRoute(state, route, {
-      code: 'TRACK_CIRCUIT_OCCUPIED',
-      trackCircuitId: occupiedTrackCircuit.id,
-    })
-  }
-
-  const reservedTrackCircuit = findRequiredTrackCircuit(route, state, (trackCircuit) => {
-    return (
-      trackCircuit.reservedByRouteId !== undefined &&
-      trackCircuit.reservedByRouteId !== route.id
-    )
-  })
-
-  if (reservedTrackCircuit !== undefined) {
-    return rejectKnownRoute(state, route, {
-      code: 'TRACK_CIRCUIT_RESERVED',
-      trackCircuitId: reservedTrackCircuit.id,
-      reservedByRouteId: reservedTrackCircuit.reservedByRouteId,
-    })
   }
 
   const conflictingRoute = state.routes.find((candidate) => {
@@ -75,6 +48,32 @@ export function requestRoute(
       code: 'POINT_LOCKED',
       pointId: lockedPoint.id,
       lockedByRouteId: lockedPoint.lockedByRouteId,
+    })
+  }
+
+  const occupiedTrackCircuit = findRequiredTrackCircuit(route, state, (trackCircuit) => {
+    return trackCircuit.state === 'OCCUPIED'
+  })
+
+  if (occupiedTrackCircuit !== undefined) {
+    return rejectKnownRoute(state, route, {
+      code: 'TRACK_CIRCUIT_OCCUPIED',
+      trackCircuitId: occupiedTrackCircuit.id,
+    })
+  }
+
+  const reservedTrackCircuit = findRequiredTrackCircuit(route, state, (trackCircuit) => {
+    return (
+      trackCircuit.reservedByRouteId !== undefined &&
+      trackCircuit.reservedByRouteId !== route.id
+    )
+  })
+
+  if (reservedTrackCircuit !== undefined) {
+    return rejectKnownRoute(state, route, {
+      code: 'TRACK_CIRCUIT_RESERVED',
+      trackCircuitId: reservedTrackCircuit.id,
+      reservedByRouteId: reservedTrackCircuit.reservedByRouteId,
     })
   }
 
@@ -123,18 +122,11 @@ function rejectKnownRoute(
   route: Route,
   reason: RouteRequestRejectionReason,
 ): RouteRequestRejected {
-  const rejectedState = appendEvent(
-    {
-      ...state,
-      routes: rejectRequestedRoute(state.routes, route.id),
-      signals: setEntrySignalAspect(state.signals, route, DEFAULT_SIGNAL_ASPECT),
-    },
-    {
-      type: 'ROUTE_REJECTED',
-      routeId: route.id,
-      reason,
-    },
-  )
+  const rejectedState = appendEvent(state, {
+    type: 'ROUTE_REJECTED',
+    routeId: route.id,
+    reason,
+  })
 
   return {
     accepted: false,
@@ -172,22 +164,6 @@ function lockRequestedRoute(
     return {
       ...route,
       state: 'LOCKED',
-    }
-  })
-}
-
-function rejectRequestedRoute(
-  routes: readonly Route[],
-  routeId: RouteId,
-): readonly Route[] {
-  return routes.map((route) => {
-    if (route.id !== routeId) {
-      return route
-    }
-
-    return {
-      ...route,
-      state: 'REJECTED',
     }
   })
 }
