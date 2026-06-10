@@ -1,9 +1,9 @@
 import { DEFAULT_SIGNAL_ASPECT } from '../domain/types'
-import type { LayoutDefinition } from '../domain/types'
+import type { InfrastructureState } from '../domain/types'
 import { TrackLayoutSvg } from './TrackLayoutSvg'
 
 interface InterlockingSimulatorProps {
-  readonly layout: LayoutDefinition
+  readonly layout: InfrastructureState
 }
 
 export function InterlockingSimulator({ layout }: InterlockingSimulatorProps) {

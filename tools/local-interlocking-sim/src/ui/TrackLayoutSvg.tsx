@@ -1,7 +1,7 @@
-import type { LayoutDefinition } from '../domain/types'
+import type { InfrastructureState } from '../domain/types'
 
 interface TrackLayoutSvgProps {
-  readonly layout: LayoutDefinition
+  readonly layout: InfrastructureState
 }
 
 export function TrackLayoutSvg({ layout }: TrackLayoutSvgProps) {

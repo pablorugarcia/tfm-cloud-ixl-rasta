@@ -1,9 +1,9 @@
-import { mvpLayout } from './data/mvpLayout'
+import { mvpInfrastructureState } from './data/mvpLayout'
 import { InterlockingSimulator } from './ui/InterlockingSimulator'
 import './styles.css'
 
 function App() {
-  return <InterlockingSimulator layout={mvpLayout} />
+  return <InterlockingSimulator layout={mvpInfrastructureState} />
 }
 
 export default App

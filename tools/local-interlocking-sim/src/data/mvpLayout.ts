@@ -1,38 +1,46 @@
 import { DEFAULT_SIGNAL_ASPECT } from '../domain/types'
-import type { LayoutDefinition } from '../domain/types'
+import type { InfrastructureState } from '../domain/types'
 
-export const mvpLayout = {
+export const mvpInfrastructureState = {
   signals: [
     {
       id: 'LS_01',
+      aspect: DEFAULT_SIGNAL_ASPECT,
       defaultAspect: DEFAULT_SIGNAL_ASPECT,
     },
   ],
   points: [
     {
       id: 'P1',
-      positions: ['NORMAL', 'REVERSE'],
+      position: 'NORMAL',
     },
   ],
-  trackCircuits: [{ id: 'CV_ENTRY' }, { id: 'CV_1' }, { id: 'CV_2' }],
+  trackCircuits: [
+    { id: 'CV_ENTRY', state: 'CLEAR' },
+    { id: 'CV_1', state: 'CLEAR' },
+    { id: 'CV_2', state: 'CLEAR' },
+  ],
   routes: [
     {
       id: 'R_MAIN',
-      fromSignal: 'LS_01',
-      to: 'VIA_1',
+      entrySignalId: 'LS_01',
+      destination: 'VIA_1',
       requiredClearTrackCircuits: ['CV_ENTRY', 'CV_1'],
-      requiredPointPosition: 'NORMAL',
+      requiredPointPositions: [{ pointId: 'P1', position: 'NORMAL' }],
       conflictsWith: ['R_DIVERGING'],
       commandedAspect: 'PROCEED_MAIN',
+      state: 'FREE',
     },
     {
       id: 'R_DIVERGING',
-      fromSignal: 'LS_01',
-      to: 'VIA_2',
+      entrySignalId: 'LS_01',
+      destination: 'VIA_2',
       requiredClearTrackCircuits: ['CV_ENTRY', 'CV_2'],
-      requiredPointPosition: 'REVERSE',
+      requiredPointPositions: [{ pointId: 'P1', position: 'REVERSE' }],
       conflictsWith: ['R_MAIN'],
       commandedAspect: 'PROCEED_DIVERGING',
+      state: 'FREE',
     },
   ],
-} as const satisfies LayoutDefinition
+  eventLog: [],
+} as const satisfies InfrastructureState
