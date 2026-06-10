@@ -6,6 +6,10 @@ import {
   placeTrain,
   releaseRoute,
 } from '../domain/trainOperations'
+import {
+  importInfrastructureStateJson,
+  serializeInfrastructureState,
+} from '../io/infrastructureStateJson'
 import type {
   EventLogEntry,
   FaultInjectionRejectionReason,
@@ -31,6 +35,8 @@ type OperationReason =
 export function InterlockingSimulator({ layout }: InterlockingSimulatorProps) {
   const [state, setState] = useState<InfrastructureState>(layout)
   const [lastStatus, setLastStatus] = useState('Ready')
+  const [jsonText, setJsonText] = useState('')
+  const [jsonIssues, setJsonIssues] = useState<readonly string[]>([])
 
   function handleRequestRoute(routeId: RouteId) {
     const result = requestRoute(state, routeId)
@@ -81,6 +87,7 @@ export function InterlockingSimulator({ layout }: InterlockingSimulatorProps) {
   function handleReset() {
     setState(layout)
     setLastStatus('Simulation reset')
+    setJsonIssues([])
   }
 
   function handleToggleCircuitOccupancy(circuitId: TrackCircuitId) {
@@ -95,6 +102,27 @@ export function InterlockingSimulator({ layout }: InterlockingSimulatorProps) {
         ? `${circuitId} fault injection set ${nextOccupancy}`
         : `Fault injection rejected: ${formatReason(result.reason)}`,
     )
+  }
+
+  function handleExportJson() {
+    setJsonText(serializeInfrastructureState(state))
+    setJsonIssues([])
+    setLastStatus('State JSON exported')
+  }
+
+  function handleImportJson() {
+    const result = importInfrastructureStateJson(state, jsonText)
+
+    if (result.accepted) {
+      setState(result.state)
+      setJsonIssues([])
+      setLastStatus('State JSON imported')
+      return
+    }
+
+    setState(result.state)
+    setJsonIssues(formatImportIssues(result))
+    setLastStatus(`State JSON import rejected: ${result.error}`)
   }
 
   return (
@@ -155,6 +183,34 @@ export function InterlockingSimulator({ layout }: InterlockingSimulatorProps) {
                 Reset simulation
               </button>
             </div>
+          </section>
+
+          <section className="json-panel" aria-label="JSON import export">
+            <div className="json-panel-header">
+              <h2>State JSON</h2>
+              <div className="json-actions">
+                <button type="button" onClick={handleExportJson}>
+                  Export state JSON
+                </button>
+                <button type="button" onClick={handleImportJson}>
+                  Import state JSON
+                </button>
+              </div>
+            </div>
+            <textarea
+              aria-label="Infrastructure state JSON"
+              className="json-textarea"
+              spellCheck={false}
+              value={jsonText}
+              onChange={(event) => setJsonText(event.target.value)}
+            />
+            {jsonIssues.length === 0 ? null : (
+              <ul className="json-issues">
+                {jsonIssues.map((issue) => (
+                  <li key={issue}>{issue}</li>
+                ))}
+              </ul>
+            )}
           </section>
         </div>
 
@@ -274,4 +330,19 @@ function formatReason(reason: OperationReason): string {
   return details.length === 0
     ? reason.code
     : `${reason.code} (${details.join(', ')})`
+}
+
+function formatImportIssues(
+  result: Extract<ReturnType<typeof importInfrastructureStateJson>, { accepted: false }>,
+): readonly string[] {
+  if (result.validation === undefined) {
+    return [result.error]
+  }
+
+  return [
+    result.error,
+    ...result.validation.issues.map((issue) => {
+      return `${issue.severity} ${issue.code}: ${issue.message}`
+    }),
+  ]
 }

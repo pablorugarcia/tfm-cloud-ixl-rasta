@@ -117,6 +117,63 @@ button:focus-visible {
   justify-content: end;
 }
 
+.json-panel {
+  border: 1px solid #d6dcdf;
+  background: #ffffff;
+  border-radius: 8px;
+  padding: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.json-panel-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.json-panel-header h2 {
+  font-size: 15px;
+  line-height: 1.25;
+  margin: 0;
+}
+
+.json-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.json-textarea {
+  width: 100%;
+  min-height: 220px;
+  box-sizing: border-box;
+  resize: vertical;
+  border: 1px solid #b9c2c7;
+  border-radius: 6px;
+  color: #172026;
+  background: #fbfcfc;
+  padding: 10px;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-size: 13px;
+  line-height: 1.45;
+}
+
+.json-textarea:focus-visible {
+  outline: 3px solid #93c5fd;
+  outline-offset: 2px;
+}
+
+.json-issues {
+  color: #b42318;
+  font-size: 13px;
+  line-height: 1.45;
+  margin: 0;
+  padding-left: 20px;
+}
+
 .side-panel {
   display: flex;
   flex-direction: column;
@@ -245,5 +302,10 @@ button:focus-visible {
 
   .control-panel {
     grid-template-columns: 1fr;
+  }
+
+  .json-panel-header {
+    align-items: stretch;
+    flex-direction: column;
   }
 }

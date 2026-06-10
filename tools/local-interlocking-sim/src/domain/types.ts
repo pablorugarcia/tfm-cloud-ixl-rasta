@@ -107,6 +107,7 @@ export const EVENT_LOG_ENTRY_TYPES = [
   'ROUTE_RELEASE_REJECTED',
   'FAULT_INJECTED',
   'FAULT_INJECTION_REJECTED',
+  'STATE_IMPORTED',
 ] as const
 export type EventLogEntryType = (typeof EVENT_LOG_ENTRY_TYPES)[number]
 

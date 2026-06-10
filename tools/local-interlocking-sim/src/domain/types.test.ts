@@ -60,6 +60,7 @@ describe('domain state vocabularies', () => {
       'ROUTE_RELEASE_REJECTED',
       'FAULT_INJECTED',
       'FAULT_INJECTION_REJECTED',
+      'STATE_IMPORTED',
     ])
   })
 
