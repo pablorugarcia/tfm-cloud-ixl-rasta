@@ -21,6 +21,25 @@ textarea {
   font: inherit;
 }
 
+button {
+  border: 1px solid #b9c2c7;
+  border-radius: 6px;
+  background: #ffffff;
+  color: #172026;
+  cursor: pointer;
+  min-height: 36px;
+  padding: 7px 10px;
+}
+
+button:hover {
+  background: #eef3f5;
+}
+
+button:focus-visible {
+  outline: 3px solid #93c5fd;
+  outline-offset: 2px;
+}
+
 .app-shell {
   min-height: 100vh;
   display: grid;
@@ -46,9 +65,16 @@ textarea {
 
 .simulator {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) 280px;
+  grid-template-columns: minmax(0, 1fr) 340px;
   gap: 20px;
   padding: 20px 24px;
+}
+
+.workspace {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
 }
 
 .track-layout {
@@ -63,6 +89,32 @@ textarea {
   display: block;
   width: 100%;
   height: auto;
+}
+
+.control-panel {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.control-group {
+  border: 1px solid #d6dcdf;
+  background: #ffffff;
+  border-radius: 8px;
+  padding: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.control-group h2 {
+  font-size: 15px;
+  line-height: 1.25;
+  margin: 0 0 2px;
+}
+
+.control-group-reset {
+  justify-content: end;
 }
 
 .side-panel {
@@ -94,15 +146,104 @@ textarea {
 
 .status-row strong {
   color: #172026;
+  text-align: right;
 }
 
 .aspect-stop {
   color: #b42318;
 }
 
+.aspect-proceed-main {
+  color: #1a7f37;
+}
+
+.aspect-proceed-diverging {
+  color: #b7791f;
+}
+
+.empty-state {
+  color: #6b7780;
+  margin: 0;
+}
+
+.event-log-panel {
+  max-height: 260px;
+  overflow: auto;
+}
+
+.event-log {
+  list-style: decimal;
+  margin: 0;
+  padding-left: 22px;
+  color: #38464f;
+  font-size: 13px;
+  line-height: 1.45;
+}
+
+.event-log li + li {
+  margin-top: 6px;
+}
+
+.track-line-reserved {
+  stroke: #2563eb;
+  stroke-width: 20;
+  stroke-linecap: round;
+  opacity: 0.48;
+}
+
+.track-line {
+  stroke-width: 9;
+  stroke-linecap: round;
+}
+
+.track-line-clear {
+  stroke: #263238;
+}
+
+.track-line-occupied {
+  stroke: #b42318;
+}
+
+.svg-label {
+  fill: #53616a;
+  font-size: 18px;
+}
+
+.svg-label-strong {
+  fill: #172026;
+  font-size: 20px;
+  font-weight: 700;
+}
+
+.svg-label-small {
+  fill: #53616a;
+  font-size: 14px;
+}
+
+.svg-label-reserved {
+  fill: #1d4ed8;
+  font-weight: 700;
+}
+
+.train-marker {
+  fill: #111827;
+  stroke: #ffffff;
+  stroke-width: 3;
+}
+
+.train-marker-label {
+  fill: #ffffff;
+  font-size: 12px;
+  font-weight: 700;
+}
+
 @media (max-width: 820px) {
   .simulator {
     grid-template-columns: 1fr;
     padding: 16px;
+  }
+
+  .control-panel {
+    grid-template-columns: 1fr;
   }
 }
