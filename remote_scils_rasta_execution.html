@@ -1,0 +1,1235 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Ejecución remota · SCI-LS sobre RaSTA</title>
+<script>
+(function () {
+  const key = 'remote-scils-rasta-theme';
+  const saved = localStorage.getItem(key);
+  const prefersDark = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
+  document.documentElement.dataset.theme = saved || (prefersDark ? 'dark' : 'light');
+})();
+</script>
+<style>
+:root {
+  --bg:#eef2f6;
+  --panel:#ffffff;
+  --panel-soft:#f8fafc;
+  --ink:#172033;
+  --muted:#58657a;
+  --line:#d8e0ea;
+  --line-strong:#a8b4c4;
+  --blue:#075985;
+  --cyan:#0891b2;
+  --teal:#0f766e;
+  --green:#15803d;
+  --amber:#b45309;
+  --rose:#be123c;
+  --violet:#6d28d9;
+  --shadow:0 18px 45px rgba(15,23,42,.10);
+  --radius:8px;
+}
+html[data-theme="dark"] {
+  --bg:#0f172a;
+  --panel:#111827;
+  --panel-soft:#0b1220;
+  --ink:#f8fafc;
+  --muted:#cbd5e1;
+  --line:#334155;
+  --line-strong:#64748b;
+  --blue:#7dd3fc;
+  --cyan:#22d3ee;
+  --teal:#5eead4;
+  --green:#86efac;
+  --amber:#fbbf24;
+  --rose:#fda4af;
+  --violet:#c4b5fd;
+  --shadow:0 18px 45px rgba(0,0,0,.32);
+}
+* { box-sizing:border-box; }
+body { margin:0; background:var(--bg); color:var(--ink); font-family:Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; }
+button, input { font:inherit; }
+code, pre { font-family:"SFMono-Regular", Consolas, "Liberation Mono", Menlo, monospace; }
+a { color:inherit; }
+.topbar { position:sticky; top:0; z-index:50; display:flex; flex-wrap:wrap; gap:10px; align-items:center; justify-content:space-between; border-bottom:1px solid var(--line); background:color-mix(in srgb,var(--panel) 92%,transparent); backdrop-filter:blur(12px); padding:10px 18px; }
+.nav { display:flex; flex-wrap:wrap; gap:8px; align-items:center; }
+.nav a,.nav button,.quick button,.filter button,.code-tabs button,.pill-button { cursor:pointer; border:1px solid var(--line); background:var(--panel); color:var(--ink); border-radius:999px; padding:8px 11px; font-weight:850; text-decoration:none; font-size:.86rem; }
+.nav a:hover,.nav button:hover,.quick button:hover,.filter button:hover,.filter button.is-active,.code-tabs button:hover,.code-tabs button.is-active,.pill-button:hover { border-color:var(--cyan); color:var(--blue); background:color-mix(in srgb,var(--cyan) 9%,var(--panel)); box-shadow:0 0 0 3px color-mix(in srgb,var(--cyan) 22%,transparent); }
+.brand { display:flex; align-items:center; gap:10px; font-weight:950; color:var(--ink); }
+.brand-mark { width:34px; height:34px; border-radius:8px; display:grid; place-items:center; color:#fff; background:#075985; font-weight:950; }
+header { padding:30px 18px 14px; }
+.hero { max-width:1380px; margin:0 auto; display:grid; grid-template-columns:minmax(0,1.2fr) minmax(320px,.8fr); gap:18px; align-items:start; }
+.eyebrow { color:var(--rose); font-size:.78rem; font-weight:950; letter-spacing:.08em; text-transform:uppercase; }
+h1 { margin:9px 0 10px; font-size:clamp(2rem,5vw,4.2rem); line-height:1.03; letter-spacing:0; max-width:980px; }
+.subtitle { max-width:920px; margin:0; color:var(--muted); font-size:1.04rem; line-height:1.65; }
+.notice { border:1px solid color-mix(in srgb,var(--amber) 45%,var(--line)); background:color-mix(in srgb,var(--amber) 11%,var(--panel)); border-radius:var(--radius); padding:14px; color:var(--ink); line-height:1.55; }
+.quick { display:flex; flex-wrap:wrap; gap:8px; margin-top:16px; }
+.metrics { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:10px; }
+.metric { border:1px solid var(--line); background:var(--panel); border-radius:var(--radius); padding:12px; box-shadow:var(--shadow); }
+.metric strong { display:block; font-size:1.6rem; margin-bottom:3px; }
+.metric span { color:var(--muted); font-weight:750; font-size:.88rem; }
+main { max-width:1380px; margin:0 auto; padding:0 18px 40px; }
+.layout { display:grid; grid-template-columns:minmax(270px,.33fr) minmax(0,1fr); gap:16px; align-items:start; }
+.sidebar { position:sticky; top:74px; display:grid; gap:12px; }
+.panel { border:1px solid var(--line); background:var(--panel); border-radius:var(--radius); box-shadow:var(--shadow); padding:16px; }
+.panel h2,.panel h3 { margin:0 0 10px; letter-spacing:0; }
+.panel p { color:var(--muted); line-height:1.58; }
+.search label { display:grid; gap:7px; color:var(--ink); font-weight:900; }
+.search input { width:100%; border:1px solid var(--line-strong); background:var(--panel-soft); color:var(--ink); border-radius:var(--radius); padding:10px 12px; }
+.search input:focus { outline:3px solid color-mix(in srgb,var(--cyan) 25%,transparent); border-color:var(--cyan); }
+.filter { display:flex; flex-wrap:wrap; gap:8px; }
+.stat-list { display:grid; gap:8px; margin-top:10px; }
+.stat { display:flex; justify-content:space-between; gap:10px; border:1px solid var(--line); border-radius:var(--radius); background:var(--panel-soft); padding:8px 10px; color:var(--muted); font-size:.88rem; }
+.stat strong { color:var(--ink); }
+.selected-flow { display:grid; gap:8px; }
+.flow-item { border-left:4px solid var(--cyan); background:var(--panel-soft); border-radius:0 var(--radius) var(--radius) 0; padding:8px 10px; color:var(--muted); font-size:.9rem; }
+.content { display:grid; gap:16px; min-width:0; }
+.section-title { display:flex; flex-wrap:wrap; justify-content:space-between; gap:12px; align-items:flex-end; margin-bottom:12px; }
+.section-title p { margin:0; max-width:800px; }
+.map-shell { position:relative; min-height:1180px; overflow:auto; border:1px solid var(--line); border-radius:var(--radius); background:var(--panel-soft); }
+#graph { min-width:1320px; height:1180px; display:block; }
+.node { cursor:pointer; }
+.node rect { stroke-width:1.4; transition:filter .16s ease, opacity .16s ease, stroke-width .16s ease; }
+.node text { pointer-events:none; font-weight:850; fill:#0f172a; }
+html[data-theme="dark"] .node text { fill:#f8fafc; }
+.node.is-dim rect,.edge.is-dim { opacity:.16; }
+.node.is-active rect { stroke-width:3; filter:drop-shadow(0 0 10px rgba(245,158,11,.65)); }
+.node.is-related rect { stroke-width:2.4; }
+.edge { stroke:var(--line-strong); stroke-width:1.8; fill:none; marker-end:url(#arrow); transition:opacity .16s ease, stroke .16s ease, stroke-width .16s ease; }
+.edge.is-active { stroke:var(--amber); stroke-width:3; opacity:1; }
+.deep-shell { min-height:900px; overflow:auto; border:1px solid var(--line); border-radius:var(--radius); background:var(--panel-soft); }
+#deep-graph { min-width:1580px; height:1140px; display:block; }
+.deep-node { cursor:pointer; }
+.deep-node rect { stroke-width:1.4; transition:filter .16s ease, opacity .16s ease, stroke-width .16s ease; }
+.deep-node text { pointer-events:none; font-weight:850; fill:#0f172a; }
+html[data-theme="dark"] .deep-node text { fill:#f8fafc; }
+.deep-node.is-dim rect,.deep-edge.is-dim { opacity:.16; }
+.deep-node.is-active rect { stroke-width:3; filter:drop-shadow(0 0 10px rgba(245,158,11,.65)); }
+.deep-node.is-related rect { stroke-width:2.4; }
+.deep-edge { stroke:var(--line-strong); stroke-width:1.7; fill:none; marker-end:url(#deep-arrow); transition:opacity .16s ease, stroke .16s ease, stroke-width .16s ease; }
+.deep-edge.is-active { stroke:var(--amber); stroke-width:3; opacity:1; }
+.deep-controls { display:flex; flex-wrap:wrap; gap:8px; margin:0 0 12px; }
+.deep-inspector { display:grid; grid-template-columns:minmax(0,1fr) minmax(280px,.38fr); gap:12px; margin-top:12px; }
+.deep-path { display:grid; gap:8px; }
+.deep-path button { cursor:pointer; text-align:left; border:1px solid var(--line); background:var(--panel-soft); color:var(--ink); border-radius:var(--radius); padding:8px 10px; }
+.deep-path button:hover { border-color:var(--cyan); }
+.legend { display:flex; flex-wrap:wrap; gap:8px; margin-top:10px; }
+.legend span,.tag { display:inline-flex; align-items:center; gap:6px; border:1px solid var(--line); border-radius:999px; padding:5px 8px; color:var(--muted); background:var(--panel); font-size:.8rem; font-weight:850; }
+.dot { width:10px; height:10px; border-radius:999px; background:var(--dot); }
+.inspector-grid { display:grid; grid-template-columns:minmax(0,1fr) minmax(270px,.42fr); gap:12px; }
+.fact-grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(210px,1fr)); gap:10px; }
+.fact { border:1px solid var(--line); border-radius:var(--radius); background:var(--panel-soft); padding:10px; min-width:0; }
+.fact strong { display:block; margin-bottom:5px; }
+.fact code,.path { overflow-wrap:anywhere; color:var(--blue); }
+.dependency-list { display:grid; gap:8px; }
+.dependency-list button { cursor:pointer; text-align:left; border:1px solid var(--line); background:var(--panel-soft); color:var(--ink); border-radius:var(--radius); padding:8px 10px; }
+.dependency-list button:hover { border-color:var(--cyan); }
+.timeline { display:grid; gap:10px; }
+.step { display:grid; grid-template-columns:44px minmax(0,1fr); gap:12px; align-items:start; border:1px solid var(--line); background:var(--panel); border-radius:var(--radius); padding:12px; cursor:pointer; }
+.step:hover,.step.is-active { border-color:var(--cyan); box-shadow:0 0 0 3px color-mix(in srgb,var(--cyan) 18%,transparent); }
+.step-index { width:34px; height:34px; display:grid; place-items:center; border-radius:8px; background:color-mix(in srgb,var(--blue) 14%,var(--panel)); color:var(--blue); font-weight:950; }
+.step h3 { margin:0 0 5px; }
+.step p { margin:0; }
+.matrix { display:grid; grid-template-columns:repeat(auto-fit,minmax(260px,1fr)); gap:10px; }
+.file-card { border:1px solid var(--line); background:var(--panel); border-radius:var(--radius); padding:12px; display:grid; gap:9px; }
+.file-card h3 { margin:0; font-size:1rem; }
+.file-card p { margin:0; }
+.file-card code { color:var(--blue); overflow-wrap:anywhere; }
+.code-layout { display:grid; grid-template-columns:260px minmax(0,1fr); gap:12px; }
+.code-tabs { display:grid; gap:8px; align-content:start; }
+.code-tabs button { border-radius:var(--radius); text-align:left; }
+pre { margin:0; overflow:auto; border:1px solid var(--line); background:#0b1220; color:#d1fae5; border-radius:var(--radius); padding:14px; line-height:1.5; font-size:.86rem; }
+.network-grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(260px,1fr)); gap:10px; }
+.lane { border:1px solid var(--line); border-radius:var(--radius); background:var(--panel-soft); padding:12px; }
+.lane h3 { margin:0 0 8px; }
+.lane ul { margin:0; padding-left:18px; color:var(--muted); line-height:1.55; }
+.detail-grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(280px,1fr)); gap:12px; }
+.detail-card { border:1px solid var(--line); background:var(--panel-soft); border-radius:var(--radius); padding:12px; display:grid; gap:8px; }
+.detail-card h3 { margin:0; font-size:1rem; }
+.detail-card p { margin:0; }
+.payload-table { width:100%; border-collapse:collapse; overflow:hidden; border:1px solid var(--line); border-radius:var(--radius); background:var(--panel); font-size:.88rem; }
+.payload-table th,.payload-table td { border-bottom:1px solid var(--line); padding:8px 9px; text-align:left; vertical-align:top; }
+.payload-table th { background:var(--panel-soft); color:var(--ink); }
+.payload-table tr:last-child td { border-bottom:0; }
+.payload-table code { color:var(--blue); overflow-wrap:anywhere; }
+.checklist { display:grid; gap:10px; }
+.check { border:1px solid var(--line); background:var(--panel-soft); border-radius:var(--radius); padding:12px; }
+.check strong { display:block; margin-bottom:5px; }
+.check p { margin:0; }
+footer { max-width:1380px; margin:0 auto; padding:0 18px 28px; color:var(--muted); }
+@media (max-width:1100px) {
+  .hero,.layout,.inspector-grid,.code-layout,.deep-inspector { grid-template-columns:1fr; }
+  .sidebar { position:static; }
+}
+@media (max-width:680px) {
+  .metrics { grid-template-columns:1fr; }
+  .topbar { position:static; }
+  header { padding-top:18px; }
+  .map-shell { min-height:760px; }
+  #graph { min-width:1160px; height:960px; }
+  .deep-shell { min-height:720px; }
+  #deep-graph { min-width:1180px; height:860px; }
+}
+</style>
+</head>
+<body>
+<div class="topbar">
+  <div class="brand"><span class="brand-mark">SR</span><span>SCI-LS sobre RaSTA · remoto</span></div>
+  <nav class="nav" aria-label="Navegacion principal">
+    <a href="scils_rasta_dependency_atlas.html">Atlas principal</a>
+    <a href="rasta_handle_deep_dive.html">RaSTA handle</a>
+    <a href="#mapa">Mapa</a>
+    <a href="#mapa-profundo">Detalle init</a>
+    <a href="#secuencia">Secuencia</a>
+    <a href="#despiece">Despiece SHOW</a>
+    <a href="#archivos">Archivos</a>
+    <a href="#codigo">Código</a>
+    <a href="#red">Red</a>
+    <a href="#riesgos">Riesgos</a>
+    <button id="theme-toggle" type="button" aria-pressed="false">Modo oscuro</button>
+  </nav>
+</div>
+
+<header>
+  <div class="hero">
+    <div>
+      <div class="eyebrow">Escenario remoto / Docker · no localhost</div>
+      <h1>Árbol completo de ejecución RaSTA/SCI-LS remoto</h1>
+      <p class="subtitle">Mapa interactivo de cómo el script Docker, la configuración remota, el ejemplo SCI-LS, las factories SCI y el núcleo RaSTA se encadenan desde <code>./rasta-docker.sh server scils</code> y <code>./rasta-docker.sh client1 scils</code> hasta el flujo SHOW/STATUS.</p>
+      <div class="quick">
+        <button type="button" data-jump="docker-script">Empezar en Docker</button>
+        <button type="button" data-jump="server-main">Rol servidor</button>
+        <button type="button" data-jump="client-main">Rol cliente</button>
+        <button type="button" data-jump="send-show">SHOW SCI-LS</button>
+        <button type="button" data-jump="hp0-enum">HP0</button>
+        <button type="button" data-jump="status-response">STATUS retorno</button>
+      </div>
+    </div>
+    <div class="panel">
+      <div class="notice"><strong>Límite explícito:</strong> esto documenta el comportamiento observable del repositorio como prototipo de laboratorio. No es una especificación normativa ni evidencia de cumplimiento SIL4, EN 50159, EULYNX o RaSTA.</div>
+      <div class="metrics" id="metrics"></div>
+    </div>
+  </div>
+</header>
+
+<main>
+  <div class="layout">
+    <aside class="sidebar">
+      <section class="panel search">
+        <label>Buscar en nodos y código
+          <input id="search" type="search" placeholder="Ej.: SERVER_CH1, scils_send, RedMux, config">
+        </label>
+      </section>
+      <section class="panel">
+        <h2>Filtros</h2>
+        <div class="filter" id="filters"></div>
+        <div class="stat-list" id="stats"></div>
+      </section>
+      <section class="panel">
+        <h2>Ruta seleccionada</h2>
+        <div class="selected-flow" id="selected-flow"></div>
+      </section>
+    </aside>
+
+    <div class="content">
+      <section class="panel" id="mapa">
+        <div class="section-title">
+          <div>
+            <h2>Diagrama de dependencias remoto</h2>
+            <p>Haz clic en un nodo para ver archivo, líneas, responsabilidad, entradas, salidas y dependencias directas. Los filtros reducen el mapa a una capa concreta.</p>
+          </div>
+          <button class="pill-button" type="button" id="reset-view">Restablecer mapa</button>
+        </div>
+        <div class="map-shell">
+          <svg id="graph" viewBox="0 0 1320 1180" role="img" aria-label="Diagrama interactivo de ejecución remota SCI-LS sobre RaSTA"></svg>
+        </div>
+        <div class="legend" id="legend"></div>
+      </section>
+
+      <section class="panel" id="mapa-profundo">
+        <div class="section-title">
+          <div>
+            <h2>Versión detallada: inicialización y dependencias internas</h2>
+            <p>Esta segunda vista baja al nivel de <code>sr_init_handle()</code>, <code>rasta_handle_init()</code>, <code>scils_init()</code> y <code>sr_connect()</code>. Está pensada para seguir qué estructuras se rellenan, qué hilos arrancan y qué dependencias quedan compartidas.</p>
+          </div>
+        </div>
+        <div class="deep-controls">
+          <button class="pill-button" type="button" data-deep-jump="deep-sr-init">sr_init_handle</button>
+          <button class="pill-button" type="button" data-deep-jump="deep-handle-init">rasta_handle_init</button>
+          <button class="pill-button" type="button" data-deep-jump="deep-scils-init">scils_init</button>
+          <button class="pill-button" type="button" data-deep-jump="deep-sr-connect">sr_connect</button>
+          <button class="pill-button" type="button" id="deep-reset">Restablecer detalle</button>
+        </div>
+        <div class="deep-shell">
+          <svg id="deep-graph" viewBox="0 0 1580 1140" role="img" aria-label="Diagrama profundo de inicialización remota SCI-LS sobre RaSTA"></svg>
+        </div>
+        <div class="deep-inspector">
+          <div class="fact-grid" id="deep-facts"></div>
+          <div>
+            <h3>Vecinos directos</h3>
+            <div class="deep-path" id="deep-path"></div>
+          </div>
+        </div>
+      </section>
+
+      <section class="panel" id="inspector">
+        <div class="section-title">
+          <div>
+            <h2 id="inspector-title">Selecciona un nodo</h2>
+            <p id="inspector-summary">El inspector mostrará cómo ese archivo o función participa en la ejecución remota.</p>
+          </div>
+          <button class="pill-button" type="button" id="show-code">Ver código relacionado</button>
+        </div>
+        <div class="inspector-grid">
+          <div class="fact-grid" id="inspector-facts"></div>
+          <div>
+            <h3>Dependencias directas</h3>
+            <div class="dependency-list" id="dependency-list"></div>
+          </div>
+        </div>
+      </section>
+
+      <section class="panel" id="secuencia">
+        <div class="section-title">
+          <div>
+            <h2>Secuencia de ejecución</h2>
+            <p>Esta vista sigue la ejecución real remota: build Docker, arranque de roles, carga de configuración, handshake RaSTA y transporte de SHOW/STATUS SCI-LS.</p>
+          </div>
+        </div>
+        <div class="timeline" id="timeline"></div>
+      </section>
+
+      <section class="panel" id="despiece">
+        <div class="section-title">
+          <div>
+            <h2>Despiece de SHOW, HP0 y signal aspect</h2>
+            <p>Esta sección baja del callback de aplicación al struct, al enum, al payload SCI-LS y al telegrama SCI que finalmente viaja como datos de aplicación RaSTA.</p>
+          </div>
+        </div>
+        <div class="detail-grid">
+          <article class="detail-card">
+            <h3>1. Creación del aspecto por defecto</h3>
+            <p><code>scils_signal_aspect_defaults()</code> reserva memoria con <code>rmalloc(sizeof(scils_signal_aspect))</code> y rellena los diez campos del struct. El comportamiento probado en el repositorio deja conceptos apagados o sin información, y <code>dark_switching</code> en <code>SCILS_DARK_SWITCHING_SHOW</code>.</p>
+            <p>Evidencia: <code>src/sci/c/scils_telegram_factory.c:6</code> y <code>src/sciTest/c/scilsTests.c:8</code>.</p>
+          </article>
+          <article class="detail-card">
+            <h3>2. Conversión de default a HP0</h3>
+            <p>El callback <code>onHandshakeComplete()</code> no construye un struct desde cero. Primero toma los defaults y luego solo cambia <code>signal_aspect-&gt;main</code> a <code>SCILS_MAIN_HP_0</code>. El resto queda igual: additional, ZS3, ZS3v, ZS2, ZS2v apagados; driveway sin información; dark switching en SHOW.</p>
+            <p>Evidencia: <code>src/scils_example/c/main.c:34</code> a <code>src/scils_example/c/main.c:37</code>.</p>
+          </article>
+          <article class="detail-card">
+            <h3>3. Valor real de SCILS_MAIN_HP_0</h3>
+            <p><code>SCILS_MAIN_HP_0</code> es un valor del enum <code>scils_main</code> y vale <code>0x01</code>. En este PoC no se demuestra aquí una semántica normativa externa; el código lo trata como byte de concepto principal que se copia a <code>payload.data[0]</code> y después se imprime como <code>MAIN = 0x01</code>.</p>
+            <p>Evidencia: <code>src/sci/headers/scils_telegram_factory.h:36</code>.</p>
+          </article>
+          <article class="detail-card">
+            <h3>4. API de envío scils_send_show_signal_aspect</h3>
+            <p><code>scils_send_show_signal_aspect(ls, "S", signal_aspect)</code> es una fachada fina: usa <code>ls-&gt;sciName</code> como sender local, conserva el receiver recibido y delega la construcción a <code>scils_create_show_signal_aspect()</code>. Después entrega el telegrama a <code>scils_send_telegram()</code>.</p>
+            <p>Evidencia: <code>src/sci/c/scils.c:101</code>.</p>
+          </article>
+        </div>
+
+        <h3>Valores de scils_signal_aspect_defaults() y cambio HP0</h3>
+        <table class="payload-table">
+          <thead><tr><th>Campo</th><th>Default observable</th><th>Tras el callback cliente</th><th>Uso en SHOW</th></tr></thead>
+          <tbody>
+            <tr><td><code>main</code></td><td><code>SCILS_MAIN_OFF = 0xFF</code></td><td><code>SCILS_MAIN_HP_0 = 0x01</code></td><td><code>payload.data[0]</code></td></tr>
+            <tr><td><code>additional</code></td><td><code>SCILS_ADDITIONAL_OFF = 0xFF</code></td><td>sin cambio</td><td><code>payload.data[1]</code></td></tr>
+            <tr><td><code>zs3</code></td><td><code>SCILS_ZS3_OFF = 0xFF</code></td><td>sin cambio</td><td><code>payload.data[2]</code></td></tr>
+            <tr><td><code>zs3v</code></td><td><code>SCILS_ZS3_OFF = 0xFF</code></td><td>sin cambio</td><td><code>payload.data[3]</code></td></tr>
+            <tr><td><code>zs2</code></td><td><code>SCILS_ZS2_OFF = 0xFF</code></td><td>sin cambio</td><td><code>payload.data[4]</code></td></tr>
+            <tr><td><code>zs2v</code></td><td><code>SCILS_ZS2_OFF = 0xFF</code></td><td>sin cambio</td><td><code>payload.data[5]</code></td></tr>
+            <tr><td><code>deprecation_information</code></td><td><code>NO_INFORMATION = 0xFF</code></td><td>sin cambio</td><td><code>payload.data[6]</code></td></tr>
+            <tr><td><code>upstream_driveway_information</code></td><td><code>NO_INFORMATION = 0xF</code></td><td>sin cambio</td><td>nibble bajo de <code>payload.data[7]</code></td></tr>
+            <tr><td><code>downstream_driveway_information</code></td><td><code>NO_INFORMATION = 0xF</code></td><td>sin cambio</td><td>nibble alto de <code>payload.data[7]</code></td></tr>
+            <tr><td><code>dark_switching</code></td><td><code>SCILS_DARK_SWITCHING_SHOW = 0x01</code></td><td>sin cambio</td><td><code>payload.data[8]</code></td></tr>
+          </tbody>
+        </table>
+
+        <h3>Payloads SCI-LS que salen de las factories</h3>
+        <table class="payload-table">
+          <thead><tr><th>Telegrama</th><th>Tipo</th><th>Longitud payload</th><th>Campos serializados</th><th>Campos omitidos</th></tr></thead>
+          <tbody>
+            <tr><td><code>SHOW_SIGNAL_ASPECT</code></td><td><code>0x0100</code></td><td>9 bytes</td><td><code>main, additional, zs3, zs3v, zs2, zs2v, deprecation_information, driveway_info, dark_switching</code></td><td>ninguno del struct</td></tr>
+            <tr><td><code>SIGNAL_ASPECT_STATUS</code></td><td><code>0x0300</code></td><td>7 bytes</td><td><code>main, additional, zs3, zs3v, zs2, zs2v, dark_switching</code></td><td><code>deprecation_information</code> y driveway upstream/downstream</td></tr>
+          </tbody>
+        </table>
+
+        <h3>Bytes concretos de la demo HP0 con defaults</h3>
+        <table class="payload-table">
+          <thead><tr><th>Fase</th><th>Bytes relevantes</th><th>Lectura</th></tr></thead>
+          <tbody>
+            <tr><td>Tipo SCI SHOW</td><td><code>00 01</code></td><td>Representación usada por <code>sci_set_message_type()</code> para <code>SCILS_MESSAGE_TYPE_SHOW_SIGNAL_ASPECT = 0x0100</code>, según los tests.</td></tr>
+            <tr><td>Payload SHOW HP0/defaults</td><td><code>01 FF FF FF FF FF FF FF 01</code></td><td><code>main=HP0</code>, conceptos adicionales apagados, deprecation sin información, driveway alto/bajo a <code>0xF</code>, dark switching SHOW.</td></tr>
+            <tr><td>Tipo SCI STATUS</td><td><code>00 03</code></td><td>Representación usada para <code>SCILS_MESSAGE_TYPE_SIGNAL_ASPECT_STATUS = 0x0300</code>.</td></tr>
+            <tr><td>Payload STATUS HP0/defaults</td><td><code>01 FF FF FF FF FF 01</code></td><td>Estado reportado con <code>main=HP0</code>; se pierden en el transporte STATUS los campos de deprecation y driveway porque la factory no los serializa.</td></tr>
+          </tbody>
+        </table>
+
+        <div class="detail-grid">
+          <article class="detail-card">
+            <h3>Cabecera SCI común</h3>
+            <p>Antes del payload, <code>sci_create_base_telegram()</code> fija <code>SCI_PROTOCOL_LS = 0x30</code>, el tipo de mensaje, sender y receiver. Los nombres SCI tienen 20 bytes y se rellenan con <code>0x5F</code> si son más cortos.</p>
+          </article>
+          <article class="detail-card">
+            <h3>Bytes enviados a RaSTA</h3>
+            <p><code>sci_encode_telegram()</code> concatena 43 bytes de cabecera SCI y el payload usado. Para SHOW con HP0/defaults, la longitud SCI observable es 52 bytes: 43 de cabecera y 9 de payload.</p>
+          </article>
+          <article class="detail-card">
+            <h3>Recepción y parseo</h3>
+            <p>El servidor recibe bytes RaSTA, <code>sci_decode_telegram()</code> reconstruye el telegrama, <code>scils_on_rasta_receive()</code> detecta <code>SCILS_MESSAGE_TYPE_SHOW_SIGNAL_ASPECT</code> y <code>handle_show_signal_aspect()</code> parsea los 9 bytes antes de invocar <code>onShowSignalAspect()</code>.</p>
+          </article>
+          <article class="detail-card">
+            <h3>STATUS de retorno</h3>
+            <p>La demo del servidor no valida ni actúa sobre campo físico. Devuelve el mismo <code>signal_aspect</code> recibido como <code>SIGNAL_ASPECT_STATUS</code>, pero la factory STATUS solo serializa 7 bytes, por lo que no transporta <code>deprecation_information</code> ni driveway.</p>
+          </article>
+        </div>
+      </section>
+
+      <section class="panel" id="archivos">
+        <div class="section-title">
+          <div>
+            <h2>Matriz de archivos principales</h2>
+            <p>Separación por responsabilidad: orquestación, configuración, aplicación SCI-LS, fachada SCI, serialización, núcleo RaSTA y transporte UDP.</p>
+          </div>
+        </div>
+        <div class="matrix" id="file-matrix"></div>
+      </section>
+
+      <section class="panel" id="codigo">
+        <div class="section-title">
+          <div>
+            <h2>Fragmentos de código conectados</h2>
+            <p>Selecciona un fragmento para ver la evidencia mínima que une el mapa con el repositorio.</p>
+          </div>
+        </div>
+        <div class="code-layout">
+          <div class="code-tabs" id="code-tabs"></div>
+          <pre><code id="code-view"></code></pre>
+        </div>
+      </section>
+
+      <section class="panel" id="red">
+        <div class="section-title">
+          <div>
+            <h2>Red remota y sustitución de IPs</h2>
+            <p>El repositorio local conserva <code>10.0.0.x</code> en los .cfg. Docker los transforma a <code>10.10.10.x</code> durante el build.</p>
+          </div>
+        </div>
+        <div class="network-grid">
+          <article class="lane">
+            <h3>Servidor remoto</h3>
+            <ul>
+              <li>Contenedor: <code>rasta-server</code>.</li>
+              <li>IP Docker: <code>10.10.10.100/24</code>.</li>
+              <li>Config final: <code>rasta_server.cfg</code>.</li>
+              <li>Canales: <code>10.10.10.100:8888</code> y <code>10.10.10.100:8889</code>.</li>
+            </ul>
+          </article>
+          <article class="lane">
+            <h3>Cliente SCI-LS</h3>
+            <ul>
+              <li>Contenedor: <code>rasta-client1</code>.</li>
+              <li>IP Docker: <code>10.10.10.110/24</code>.</li>
+              <li>Config final: <code>rasta_client1.cfg</code>.</li>
+              <li>Destino: <code>SERVER_CH1</code> y <code>SERVER_CH2</code> leídos con <code>getenv()</code>.</li>
+            </ul>
+          </article>
+          <article class="lane">
+            <h3>Observación de redundancia</h3>
+            <ul>
+              <li>El script asigna la misma IP a canal 1 y canal 2 de cada contenedor.</li>
+              <li>La separación observable en este Docker es por puerto, no por interfaces/redes independientes.</li>
+              <li>Para ensayos de degradación realista habría que separar redes/canales.</li>
+            </ul>
+          </article>
+        </div>
+      </section>
+
+      <section class="panel" id="riesgos">
+        <div class="section-title">
+          <div>
+            <h2>Riesgos y límites de lectura</h2>
+            <p>Estos puntos evitan confundir el prototipo con una implementación normativa o con una arquitectura final Cloud IXL/OC.</p>
+          </div>
+        </div>
+        <div class="checklist" id="checklist"></div>
+      </section>
+    </div>
+  </div>
+</main>
+
+<footer>
+  Página generada como documentación estática del repositorio. No ejecuta RaSTA ni valida conformidad normativa.
+</footer>
+
+<script>
+const groups = {
+  docker: { label:'Docker/run', color:'#075985' },
+  build: { label:'Build', color:'#6d28d9' },
+  config: { label:'Config', color:'#b45309' },
+  app: { label:'Ejemplo SCI-LS', color:'#0891b2' },
+  sci: { label:'SCI-LS/SCI', color:'#15803d' },
+  rasta: { label:'RaSTA SR', color:'#be123c' },
+  red: { label:'RedMux/UDP', color:'#0f766e' },
+  risk: { label:'Riesgo', color:'#64748b' }
+};
+
+const nodes = [
+  { id:'docker-script', group:'docker', x:40, y:40, title:'Script de orquestacion', code:'./rasta-docker.sh build/server/client1', file:'rasta-docker.sh:3', why:'Crea la red Docker, construye la imagen y arranca los contenedores que ejecutan los binarios remotos.', input:'Argumentos build, server scils, client1 scils.', output:'Red rastanet, imagen rastac, contenedores y comandos docker exec.', evidence:'Usa --build-arg SERVER_CH1=10.10.10.100 y ejecuta ./scils_example s/c.' },
+  { id:'docker-network', group:'docker', x:300, y:40, title:'Red Docker remota', code:'rastanet 10.10.10.0/24', file:'rasta-docker.sh:6', why:'Define el dominio IP donde se comunican servidor y cliente en remoto.', input:'docker network create.', output:'Subnet 10.10.10.0/24 usada por los contenedores.', evidence:'--subnet=10.10.10.0/24 --ip-range=10.10.10.0/24.' },
+  { id:'build-args', group:'docker', x:560, y:40, title:'Build args IP', code:'SERVER_CH1, SERVER_CH2, CLIENT1_CH1...', file:'rasta-docker.sh:10', why:'Inyecta las IPs finales dentro del build de la imagen.', input:'Valores 10.10.10.100/110/120.', output:'ARG disponibles en Dockerfile.', evidence:'SERVER_CH1 y SERVER_CH2 sustituyen los placeholders 10.0.0.100/101.' },
+  { id:'dockerfile-sed', group:'build', x:820, y:40, title:'Sustitucion cfg', code:'sed -i s/10.0.0.x/$ARG/g', file:'Dockerfile:24', why:'Convierte los .cfg remotos copiados a la imagen en configuracion Docker real.', input:'config/*.cfg con placeholders 10.0.0.x.', output:'cfg internos con 10.10.10.x.', evidence:'Modifica /opt/rasta-c/config/rasta_server.cfg y clientes antes de CMake.' },
+  { id:'cmake-remote', group:'build', x:820, y:150, title:'Build remoto CMake', code:'BUILD_REMOTE_EXAMPLES + EXAMPLE_IP_OVERRIDE', file:'CMakeLists.txt:129', why:'Compila los binarios remotos y copia los .cfg remotos al directorio build.', input:'Dockerfile ejecuta cmake -DEXAMPLE_IP_OVERRIDE:BOOL=ON.', output:'scils_example, scip_example, rasta_example y cfg remotos en build.', evidence:'configure_file(config/rasta_server.cfg rasta_server.cfg COPYONLY).' },
+  { id:'remote-binaries', group:'build', x:560, y:150, title:'Binarios remotos', code:'./scils_example s / ./scils_example c', file:'CMakeLists.txt:136', why:'Son los ejecutables que mezcla el script Docker con SCI-LS remoto.', input:'Codigo src/scils_example/c/main.c.', output:'Proceso servidor o cliente segun argumento.', evidence:'rasta-docker.sh ejecuta cd .../examples && ./scils_example s/c.' },
+
+  { id:'server-cfg', group:'config', x:40, y:190, title:'Config servidor', code:'RASTA_REDUNDANCY_CONNECTIONS', file:'config/rasta_server.cfg:75', why:'Define los endpoints en los que el servidor escucha despues de la sustitucion Docker.', input:'Placeholders 10.0.0.100:8888 y 10.0.0.101:8889.', output:'Dentro de Docker queda 10.10.10.100:8888/8889.', evidence:'La funcion config_load parsea este array y RedMux hace bind.' },
+  { id:'client-cfg', group:'config', x:300, y:190, title:'Config cliente', code:'config/rasta_client1.cfg', file:'config/rasta_client1.cfg:74', why:'Define el ID y puertos locales del cliente remoto SCI-LS.', input:'Placeholders 10.0.0.200/201.', output:'Dentro de Docker queda 10.10.10.110:8890/8891.', evidence:'El cliente carga CONFIG_PATH_C antes de sr_connect().' },
+  { id:'env-server', group:'config', x:560, y:260, title:'Destino por entorno', code:'getenv("SERVER_CH1")', file:'src/scils_example/c/main.c:72', why:'El cliente remoto no usa 10.0.0.100 literal cuando EXAMPLE_IP_OVERRIDE esta activo.', input:'ENV SERVER_CH1 y SERVER_CH2 del Dockerfile.', output:'toServer[0/1].ip para sr_connect().', evidence:'strcpy(toServer[0].ip, getenv("SERVER_CH1")).' },
+
+  { id:'server-main', group:'app', x:40, y:330, title:'Entrada servidor', code:'main(argv[1] == "s")', file:'src/scils_example/c/main.c:84', why:'Arranca el rol servidor SCI-LS remoto y carga rasta_server.cfg.', input:'./scils_example s.', output:'Handle RaSTA iniciado, callbacks registrados e instancia SCI-LS "S".', evidence:'sr_init_handle(&h, CONFIG_PATH_S); scils_init(&h, SCI_NAME_S).' },
+  { id:'client-main', group:'app', x:300, y:330, title:'Entrada cliente', code:'main(argv[1] == "c")', file:'src/scils_example/c/main.c:94', why:'Arranca el rol cliente SCI-LS remoto, conecta al servidor y registra el nombre SCI "S".', input:'./scils_example c.', output:'sr_connect hacia ID_S y canales SERVER_CH1/2.', evidence:'sr_init_handle(&h, CONFIG_PATH_C); sr_connect(&h, ID_S, toServer).' },
+  { id:'callbacks-app', group:'app', x:560, y:370, title:'Callbacks aplicacion', code:'onReceive, onHandshakeComplete, onShowSignalAspect', file:'src/scils_example/c/main.c:25', why:'Conectan eventos RaSTA con la fachada SCI-LS y con la demo SHOW/STATUS.', input:'Notificaciones de RaSTA y callbacks SCI-LS.', output:'SHOW desde cliente, STATUS desde servidor y decodificacion de recepcion.', evidence:'onReceive llama scils_on_rasta_receive(); onShowSignalAspect responde STATUS.' },
+
+  { id:'sr-init', group:'rasta', x:40, y:500, title:'Inicializacion SR', code:'sr_init_handle()', file:'src/rasta/c/rasta_new.c:1581', why:'Carga configuracion, crea RedMux, prepara hashing y arranca hilos RaSTA.', input:'Ruta CONFIG_PATH_S o CONFIG_PATH_C.', output:'handle operativo con mux abierto y hilos de recepcion/heartbeat/envio.', evidence:'rasta_handle_init(); redundancy_mux_init_(); sr_start().' },
+  { id:'handle-init', group:'rasta', x:300, y:500, title:'Handle RaSTA', code:'rasta_handle_init()', file:'src/rasta/c/rastahandle.c:385', why:'Carga el fichero cfg, logger, versiones aceptadas y punteros de callbacks.', input:'rasta_server.cfg o rasta_client1.cfg.', output:'h->config.values y callbacks inicializados.', evidence:'h->config = config_load(config_file_path).' },
+  { id:'config-load', group:'config', x:560, y:500, title:'Parser cfg', code:'config_load() / config_setstd()', file:'src/rasta/c/config.c:770', why:'Convierte las claves RASTA_* en estructuras C usadas por el runtime.', input:'Archivo .cfg remoto final dentro del build.', output:'RastaConfigInfo con sending, redundancy y general.', evidence:'Lee RASTA_REDUNDANCY_CONNECTIONS, RASTA_ID, CRC, tiempos y logger.' },
+  { id:'redmux-init', group:'red', x:820, y:500, title:'RedMux init', code:'redundancy_mux_init_()', file:'src/rasta/c/rasta_red_multiplexer.c:503', why:'Crea sockets UDP y enlaza cada endpoint local de redundancia.', input:'config.redundancy.connections.', output:'udp_socket_fds, receive threads y listen_ports.', evidence:'Itera conexiones y llama udp_bind_device(ip, port).' },
+  { id:'udp-bind', group:'red', x:1080, y:500, title:'Bind UDP', code:'udp_bind_device()', file:'src/rasta/c/udp.c:57', why:'Ancla cada socket al IP:puerto local configurado.', input:'IP local sustituida y puerto cfg.', output:'Socket preparado para recibir datagramas.', evidence:'local.sin_addr.s_addr = inet_addr(ip); bind(...).' },
+
+  { id:'scils-init', group:'sci', x:40, y:610, title:'Instancia SCI-LS', code:'scils_init()', file:'src/sci/c/scils.c:38', why:'Crea la fachada SCI-LS, guarda el handle RaSTA y prepara el mapa SCI name -> RaSTA ID.', input:'handle y SCI_NAME_S/SCI_NAME_C.', output:'scils_t con callbacks SCI-LS inicializados a NULL.', evidence:'scils->rasta_handle = handle; hashmap_new().' },
+  { id:'sr-connect', group:'rasta', x:300, y:610, title:'Conexion cliente', code:'sr_connect(&h, ID_S, toServer)', file:'src/rasta/c/rasta_new.c:1612', why:'Crea canal al servidor y emite la ConnectionRequest RaSTA.', input:'ID_S=0x61 y toServer con SERVER_CH1/2.', output:'Canal redundante, conexion cliente y ConReq enviada.', evidence:'redundancy_mux_add_channel(); createConnectionRequest(); redundancy_mux_send().' },
+  { id:'red-send', group:'red', x:560, y:610, title:'Envio redundante', code:'redundancy_mux_send()', file:'src/rasta/c/rasta_red_multiplexer.c:795', why:'Convierte la PDU RaSTA en PDU de redundancia y la manda por cada canal UDP.', input:'RastaPacket ConReq/DATA/HB.', output:'Datagramas UDP hacia IP:puerto remoto.', evidence:'createRedundancyPacket(); rastaRedundancyPacketToBytes(); udp_send().' },
+  { id:'handshake-callback', group:'app', x:820, y:610, title:'Handshake completo', code:'onHandshakeComplete()', file:'src/scils_example/c/main.c:30', why:'Cuando el cliente llega a UP, dispara la orden SHOW de SCI-LS.', input:'Notificacion RaSTA con my_id == ID_C.', output:'scils_send_show_signal_aspect(scils, "S", signal_aspect).', evidence:'El callback crea defaults, fuerza main=SCILS_MAIN_HP_0 y envia SHOW.' },
+
+  { id:'show-defaults', group:'sci', x:40, y:720, title:'Defaults signal aspect', code:'scils_signal_aspect_defaults()', file:'src/sci/c/scils_telegram_factory.c:6', why:'Reserva y rellena todos los campos SCI-LS de aspecto antes de que la aplicacion cambie main a HP0.', input:'Sin parametros.', output:'scils_signal_aspect* con valores OFF/no information/show.', evidence:'rmalloc(sizeof(scils_signal_aspect)); main=SCILS_MAIN_OFF; dark_switching=SCILS_DARK_SWITCHING_SHOW.' },
+  { id:'aspect-struct', group:'sci', x:300, y:830, title:'Struct signal aspect', code:'scils_signal_aspect', file:'src/sci/headers/scils_telegram_factory.h:163', why:'Define los diez campos de concepto de señal que las factories copian al payload.', input:'Enums scils_main, scils_additional, scils_zs3, scils_zs2, driveway y dark_switching.', output:'Contrato C interno usado por SHOW y STATUS.', evidence:'main, additional, zs3, zs3v, zs2, zs2v, deprecation_information, upstream/downstream_driveway_information, dark_switching.' },
+  { id:'hp0-enum', group:'sci', x:40, y:830, title:'SCILS_MAIN_HP_0', code:'enum scils_main = 0x01', file:'src/sci/headers/scils_telegram_factory.h:36', why:'Es el valor que el cliente escribe en signal_aspect->main tras crear defaults.', input:'Callback onHandshakeComplete() en cliente.', output:'main pasa de SCILS_MAIN_OFF 0xFF a HP0 0x01.', evidence:'signal_aspect->main = SCILS_MAIN_HP_0.' },
+  { id:'send-show', group:'sci', x:300, y:720, title:'Enviar SHOW', code:'scils_send_show_signal_aspect()', file:'src/sci/c/scils.c:101', why:'Fachada fina: crea un telegrama SCI-LS SHOW con sender local y receiver "S" y lo entrega al envio comun.', input:'ls, receiver "S" y signal_aspect por valor.', output:'SCI telegram hacia scils_send_telegram().', evidence:'scils_create_show_signal_aspect(ls->sciName, receiver, signal_aspect).' },
+  { id:'show-factory', group:'sci', x:560, y:720, title:'Factory SHOW', code:'scils_create_show_signal_aspect()', file:'src/sci/c/scils_telegram_factory.c:23', why:'Construye un telegrama SCI-LS de tipo SHOW_SIGNAL_ASPECT y prepara su payload de 9 bytes.', input:'sender, receiver y los diez campos de signal_aspect.', output:'sci_telegram con tipo SCILS_MESSAGE_TYPE_SHOW_SIGNAL_ASPECT.', evidence:'telegram->payload.used_bytes = 9.' },
+  { id:'base-telegram', group:'sci', x:820, y:720, title:'Base SCI', code:'sci_create_base_telegram()', file:'src/sci/c/sci_telegram_factory.c:5', why:'Rellena protocolo, tipo, sender, receiver y payload base comun.', input:'SCI_PROTOCOL_LS, nombres SCI y tipo de mensaje.', output:'sci_telegram listo para recibir payload especifico.', evidence:'sci_set_sender(); sci_set_receiver(); payload a cero.' },
+  { id:'show-payload', group:'sci', x:560, y:830, title:'Payload SHOW 9 bytes', code:'payload.data[0..8]', file:'src/sci/c/scils_telegram_factory.c:27', why:'Copia main, additional, ZS, informacion de depreciacion, driveway empaquetado y dark_switching al payload SHOW.', input:'signal_aspect con main=0x01 y defaults restantes.', output:'Payload SCI-LS usado por sci_encode_telegram().', evidence:'data[7] = (downstream << 4) | upstream; data[8] = dark_switching.' },
+  { id:'sci-wire-layout', group:'sci', x:820, y:830, title:'Bytes SCI', code:'43 + payload.used_bytes', file:'src/sci/c/sci.c:34', why:'Serializa cabecera SCI comun y payload. SHOW con 9 bytes produce 52 bytes SCI.', input:'sci_telegram.', output:'RastaByteArray para RaSTA.', evidence:'bytes[0]=protocol; bytes[1..2]=type; bytes[3..22]=sender; bytes[23..42]=receiver; bytes[43..]=payload.' },
+  { id:'encode-send', group:'sci', x:1080, y:720, title:'Codificar y enviar', code:'scils_send_telegram()', file:'src/sci/c/scils.c:14', why:'Codifica el telegrama, traduce nombre SCI a ID RaSTA y llama sr_send().', input:'sci_telegram con receiver "S" en el comando o receiver "C" en el status.', output:'RastaMessageData en la cola de envio RaSTA.', evidence:'sci_encode_telegram(); hashmap_get(); sr_send().' },
+  { id:'sr-send', group:'rasta', x:1080, y:610, title:'Cola DATA RaSTA', code:'sr_send()', file:'src/rasta/c/rasta_new.c:1664', why:'Solo si la conexion esta UP mete los bytes SCI en fifo_send para el hilo de envio.', input:'remote_id y RastaMessageData.', output:'Datos de aplicacion pendientes de empaquetar como DATA.', evidence:'fifo_push(connection->fifo_send, to_fifo).' },
+
+  { id:'receive-path', group:'rasta', x:1080, y:370, title:'Recepcion RaSTA', code:'receive thread -> onReceive()', file:'src/rasta/c/rasta_new.c:1154', why:'El receptor procesa PDUs, valida y entrega datos a la aplicacion mediante callback.', input:'Datagramas UDP convertidos a RastaPacket.', output:'rastaApplicationMessage disponible para sr_get_received_data().', evidence:'El ejemplo registra h.notifications.on_receive = onReceive.' },
+  { id:'decode-scils', group:'sci', x:820, y:330, title:'Decode SCI-LS', code:'scils_on_rasta_receive()', file:'src/sci/c/scils.c:230', why:'Convierte bytes de aplicacion RaSTA a telegrama SCI y despacha por tipo.', input:'rastaApplicationMessage.', output:'Callback SCI-LS SHOW o STATUS.', evidence:'sci_decode_telegram(); switch(sci_get_message_type(parsed)).' },
+  { id:'parse-show', group:'sci', x:560, y:940, title:'Parse SHOW', code:'scils_parse_show_signal_aspect_payload()', file:'src/sci/c/scils_telegram_factory.c:81', why:'Reconstruye un scils_signal_aspect desde los 9 bytes del payload SHOW recibido.', input:'sci_telegram de tipo 0x0100.', output:'signal_aspect para callback on_show_signal_aspect_received.', evidence:'Lee data[0..8] y separa driveway con mascaras 0x0F/0xF0.' },
+  { id:'status-response', group:'app', x:820, y:240, title:'Respuesta STATUS', code:'onShowSignalAspect()', file:'src/scils_example/c/main.c:48', why:'En el servidor remoto, el SHOW recibido se devuelve como SIGNAL_ASPECT_STATUS.', input:'sender y signal_aspect parseados.', output:'scils_send_signal_aspect_status(ls, sender, signal_aspect).', evidence:'Este comportamiento simula el OC; es demo, no validacion de campo.' },
+  { id:'send-status', group:'sci', x:820, y:940, title:'Enviar STATUS', code:'scils_send_signal_aspect_status()', file:'src/sci/c/scils.c:107', why:'Fachada equivalente a SHOW, pero para comunicar el aspecto reportado por el servidor.', input:'ls, sender original como receiver y signal_aspect recibido.', output:'SCI telegram hacia scils_send_telegram().', evidence:'scils_create_signal_aspect_status(ls->sciName, receiver, signal_aspect).' },
+  { id:'status-factory', group:'sci', x:1080, y:940, title:'Payload STATUS 7 bytes', code:'scils_create_signal_aspect_status()', file:'src/sci/c/scils_telegram_factory.c:55', why:'Serializa el estado de aspecto reportado. Usa 7 bytes, no los 9 bytes completos de SHOW.', input:'sender servidor, receiver cliente y signal_aspect.', output:'Payload con main, additional, ZS*, dark_switching.', evidence:'used_bytes=7; no copia deprecation_information ni driveway.' },
+  { id:'parse-status', group:'sci', x:820, y:1050, title:'Parse STATUS', code:'scils_parse_signal_aspect_status_payload()', file:'src/sci/c/scils_telegram_factory.c:103', why:'Reconstruye el estado reportado desde un payload STATUS de 7 bytes en el cliente.', input:'sci_telegram de tipo 0x0300.', output:'signal_aspect parcial para onSignalAspectStatus().', evidence:'Lee data[0..6], incluyendo main y dark_switching.' },
+  { id:'client-status', group:'app', x:1080, y:1050, title:'STATUS en cliente', code:'onSignalAspectStatus()', file:'src/scils_example/c/main.c:60', why:'El cliente imprime el estado recibido como retorno del comando SHOW.', input:'STATUS SCI-LS decodificado.', output:'printf con main mostrado.', evidence:'Received location status from %s. LS showing main = ...' },
+  { id:'nonlocal-risk', group:'risk', x:1080, y:190, title:'Limite remoto', code:'No es localhost, pero tampoco red independiente real', file:'rasta-docker.sh:11', why:'Docker usa IPs 10.10.10.x, pero los dos canales de cada rol comparten IP y se separan por puerto.', input:'SERVER_CH1=SERVER_CH2=10.10.10.100.', output:'Redundancia funcional de ejemplo, no prueba de independencia fisica.', evidence:'Misma IP para canal 1 y 2 en rasta-docker.sh.' }
+];
+
+const edges = [
+  ['docker-script','docker-network'], ['docker-script','build-args'], ['build-args','dockerfile-sed'],
+  ['dockerfile-sed','cmake-remote'], ['cmake-remote','remote-binaries'], ['docker-script','remote-binaries'],
+  ['dockerfile-sed','server-cfg'], ['dockerfile-sed','client-cfg'], ['build-args','env-server'],
+  ['remote-binaries','server-main'], ['remote-binaries','client-main'], ['server-cfg','server-main'], ['client-cfg','client-main'], ['env-server','client-main'],
+  ['server-main','sr-init'], ['client-main','sr-init'], ['sr-init','handle-init'], ['handle-init','config-load'], ['config-load','redmux-init'], ['redmux-init','udp-bind'],
+  ['server-main','scils-init'], ['client-main','scils-init'], ['client-main','sr-connect'], ['sr-connect','red-send'], ['red-send','receive-path'],
+  ['receive-path','handshake-callback'], ['handshake-callback','show-defaults'], ['show-defaults','aspect-struct'], ['show-defaults','hp0-enum'], ['hp0-enum','send-show'], ['aspect-struct','send-show'],
+  ['send-show','show-factory'], ['show-factory','base-telegram'], ['base-telegram','show-payload'], ['show-payload','sci-wire-layout'], ['sci-wire-layout','encode-send'], ['encode-send','sr-send'], ['sr-send','red-send'],
+  ['receive-path','decode-scils'], ['decode-scils','parse-show'], ['parse-show','status-response'], ['status-response','send-status'], ['send-status','status-factory'], ['status-factory','sci-wire-layout'], ['decode-scils','parse-status'], ['parse-status','client-status'],
+  ['docker-script','nonlocal-risk'], ['build-args','nonlocal-risk']
+];
+
+const deepNodes = [
+  { id:'deep-main-s', group:'app', x:40, y:40, title:'main servidor', code:'argv[1] == "s"', file:'src/scils_example/c/main.c:84', why:'Selecciona el rol servidor remoto, carga CONFIG_PATH_S y registra callbacks de aplicacion.', input:'./scils_example s.', output:'sr_init_handle(), scils_init("S") y callback on_show_signal_aspect.', evidence:'sr_init_handle(&h, CONFIG_PATH_S); scils = scils_init(&h, SCI_NAME_S).' },
+  { id:'deep-main-c', group:'app', x:40, y:160, title:'main cliente', code:'argv[1] == "c"', file:'src/scils_example/c/main.c:94', why:'Selecciona el rol cliente remoto, carga CONFIG_PATH_C, conecta y registra SCI_NAME_S.', input:'./scils_example c.', output:'sr_init_handle(), sr_connect(), scils_init("C") y scils_register_sci_name().', evidence:'sr_connect(&h, ID_S, toServer); scils_register_sci_name(scils, SCI_NAME_S, ID_S).' },
+  { id:'deep-sr-init', group:'rasta', x:300, y:90, title:'sr_init_handle', code:'sr_init_handle(handle,cfg)', file:'src/rasta/c/rasta_new.c:1581', why:'Punto de entrada de inicializacion RaSTA desde fichero de configuracion.', input:'Puntero a struct rasta_handle y ruta cfg.', output:'Handle cargado, mux creado, hashing preparado y threads arrancados.', evidence:'Llama rasta_handle_init(), redundancy_mux_init_(), rasta_md4_set_key() y sr_start().' },
+  { id:'deep-handle-init', group:'rasta', x:560, y:20, title:'rasta_handle_init', code:'config + logger + handles', file:'src/rasta/c/rastahandle.c:385', why:'Inicializa la estructura principal antes de abrir transporte y hilos.', input:'config_file_path.', output:'h->config, h->logger, callbacks NULL, hashing_context, subhandles.', evidence:'h->config = config_load(config_file_path).' },
+  { id:'deep-redmux-init', group:'red', x:560, y:150, title:'redundancy_mux_init_', code:'RedMux desde config', file:'src/rasta/c/rasta_red_multiplexer.c:503', why:'Crea la capa de redundancia/UDP asociada al handle.', input:'handle->config.values.', output:'mux con sockets, canales conectados y parametros de redundancia.', evidence:'mux.port_count = config.redundancy.connections.count.' },
+  { id:'deep-sr-hash', group:'rasta', x:560, y:280, title:'Hash SR en init', code:'hashing_context', file:'src/rasta/c/rasta_new.c:1598', why:'Configura el contexto de checksum/hash usado al serializar PDUs RaSTA.', input:'RASTA_MD4_* y checksum length de config.', output:'hashing_context listo para rastaModuleToBytes/bytesToRastaPacket.', evidence:'handle->hashing_context.algorithm = RASTA_ALGO_MD4; rasta_md4_set_key().' },
+  { id:'deep-sr-start', group:'rasta', x:560, y:410, title:'sr_start', code:'abrir mux + threads', file:'src/rasta/c/rasta_new.c:1537', why:'Pasa de estructura inicializada a runtime activo.', input:'handle con subhandles y mux.', output:'Mux abierto, recepcion, heartbeat y envio en hilos.', evidence:'redundancy_mux_open(); sr_start_receiving(); sr_start_heartbeats(); sr_start_sending().' },
+
+  { id:'deep-config-load', group:'config', x:820, y:20, title:'config_load', code:'parse .cfg remoto', file:'src/rasta/c/config.c:770', why:'Lee el fichero remoto final copiado al build y aplica defaults.', input:'rasta_server.cfg o rasta_client1.cfg.', output:'RastaConfig con values.sending, values.redundancy y values.general.', evidence:'config_setstd(&config) rellena claves RASTA_*.' },
+  { id:'deep-logger', group:'config', x:1080, y:20, title:'Logger runtime', code:'LOGGER_TYPE/MAX_LEVEL', file:'src/rasta/c/rastahandle.c:389', why:'Configura la salida de logs del handle y del RedMux.', input:'LOGGER_TYPE, LOGGER_MAX_LEVEL y LOGGER_FILE.', output:'h->logger y h->redlogger.', evidence:'h->redlogger = h->logger.' },
+  { id:'deep-accepted', group:'config', x:1080, y:120, title:'Versiones aceptadas', code:'RASTA_ACCEPTED_VERSIONS', file:'src/rasta/c/rastahandle.c:415', why:'Prepara la lista que el receive_handle usara durante el handshake.', input:'Array de versiones aceptadas en cfg.', output:'receive_handle->accepted_version.', evidence:'allocate_DictionaryArray(config_accepted_version.value.array.count).' },
+  { id:'deep-notifs-null', group:'rasta', x:820, y:120, title:'Callbacks a NULL', code:'h->notifications.*', file:'src/rasta/c/rastahandle.c:420', why:'Evita callbacks basura antes de que la aplicacion registre handlers concretos.', input:'struct rasta_handle recien creado.', output:'Punteros de notificacion inicializados a NULL.', evidence:'h->notifications.on_receive = NULL, etc.' },
+  { id:'deep-connections', group:'rasta', x:820, y:220, title:'Lista conexiones', code:'rastalist', file:'src/rasta/c/rastahandle.c:431', why:'Prepara el contenedor de conexiones por peer RaSTA.', input:'RASTA_CONNECTIONS_SIZE o valor interno de init.', output:'h->connections listo para sr_connect y recepcion.', evidence:'Se usa despues con rastalist_getConnectionByRemote().' },
+  { id:'deep-handle-hash', group:'rasta', x:1080, y:220, title:'Hashing handle', code:'sr_hash_algorithm', file:'src/rasta/c/rastahandle.c:436', why:'Configura el algoritmo de hash desde config antes de crear subhandles.', input:'RASTA_SR_CHECKSUM_ALGO, RASTA_SR_CHECKSUM_KEY, RASTA_MD4_*.', output:'h->hashing_context compartido.', evidence:'Los subhandles guardan puntero a &h->hashing_context.' },
+  { id:'deep-subhandles', group:'rasta', x:820, y:320, title:'Subhandles', code:'receive/send/heartbeat', file:'src/rasta/c/rastahandle.c:459', why:'Divide el runtime en tres estructuras de trabajo especializadas.', input:'h->config, h->connections, h->mux, logger, hashing_context.', output:'receive_handle, send_handle y heartbeat_handle.', evidence:'rmalloc(sizeof(struct rasta_receive_handle)), etc.' },
+  { id:'deep-recv-handle', group:'rasta', x:1080, y:330, title:'receive_handle', code:'recepcion SR', file:'src/rasta/c/rastahandle.c:464', why:'Agrupa dependencias para el hilo de recepcion.', input:'config, info, handle, connections, mux, hashing_context.', output:'Contexto para sr_start_receiving y handlers de PDU.', evidence:'receive_handle->mux = &h->mux; hashing_context = &h->hashing_context.' },
+  { id:'deep-send-handle', group:'rasta', x:1080, y:430, title:'send_handle', code:'cola envio SR', file:'src/rasta/c/rastahandle.c:474', why:'Agrupa dependencias para sacar mensajes de fifo_send y crear DATA.', input:'connections, mux, config, hashing_context.', output:'Contexto para sr_start_sending.', evidence:'send_handle->connections = &h->connections.' },
+  { id:'deep-hb-handle', group:'rasta', x:1080, y:530, title:'heartbeat_handle', code:'supervision temporal', file:'src/rasta/c/rastahandle.c:484', why:'Agrupa dependencias del hilo de heartbeat y timeouts.', input:'config, info, connections, mux, hashing_context.', output:'Contexto para sr_start_heartbeats.', evidence:'heartbeat_handle->running = &h->hb_running.' },
+
+  { id:'deep-redmux-memory', group:'red', x:820, y:450, title:'Memoria RedMux', code:'sockets + channels', file:'src/rasta/c/rasta_red_multiplexer.c:519', why:'Reserva arrays de sockets UDP, hilos de recepcion y canales conectados.', input:'mux.port_count.', output:'udp_socket_fds, transport_receive_threads, connected_channels.', evidence:'rmalloc(mux.port_count * sizeof(int)).' },
+  { id:'deep-udp-init', group:'red', x:1080, y:650, title:'udp_init', code:'socket UDP', file:'src/rasta/c/rasta_red_multiplexer.c:539', why:'Crea un socket por canal de redundancia.', input:'Cada entrada de RASTA_REDUNDANCY_CONNECTIONS.', output:'Descriptor UDP por canal.', evidence:'mux.udp_socket_fds[j] = udp_init().' },
+  { id:'deep-udp-bind', group:'red', x:1340, y:650, title:'udp_bind_device', code:'bind(ip,port)', file:'src/rasta/c/udp.c:57', why:'Hace bind del socket al endpoint local remoto.', input:'IP sustituida por Docker y puerto del cfg.', output:'Socket escuchando en 10.10.10.x:puerto.', evidence:'local.sin_addr.s_addr = inet_addr(ip); bind(...).' },
+  { id:'deep-mux-open', group:'red', x:820, y:610, title:'redundancy_mux_open', code:'abrir RedMux', file:'src/rasta/c/rasta_new.c:1540', why:'Activa la capa de redundancia antes de iniciar hilos SR.', input:'handle->mux ya inicializado.', output:'Mux listo para recibir/enviar datagramas.', evidence:'sr_start llama redundancy_mux_open(&handle->mux).' },
+  { id:'deep-start-recv', group:'rasta', x:1080, y:750, title:'sr_start_receiving', code:'hilo receive', file:'src/rasta/c/rasta_new.c:1481', why:'Arranca el bucle que espera paquetes entrantes.', input:'receive_handle.', output:'recv_thread activo.', evidence:'Usa receive_handle con mux, conexiones y hashing_context.' },
+  { id:'deep-start-hb', group:'rasta', x:1080, y:850, title:'sr_start_heartbeats', code:'hilo heartbeat', file:'src/rasta/c/rasta_new.c:1501', why:'Arranca supervision temporal y envio de heartbeat.', input:'heartbeat_handle.', output:'hb_thread activo.', evidence:'Usa t_h, t_i y conexiones.' },
+  { id:'deep-start-send', group:'rasta', x:1080, y:950, title:'sr_start_sending', code:'hilo send', file:'src/rasta/c/rasta_new.c:1516', why:'Arranca el hilo que consume fifo_send y crea DATA.', input:'send_handle.', output:'send_thread activo.', evidence:'El envio posterior por scils_send_telegram acaba en fifo_send.' },
+
+  { id:'deep-scils-init', group:'sci', x:300, y:620, title:'scils_init', code:'scils_t fachada', file:'src/sci/c/scils.c:38', why:'Crea la capa SCI-LS de aplicacion encima del handle RaSTA.', input:'struct rasta_handle* y SCI_NAME_S/SCI_NAME_C.', output:'scils_t con mapa de nombres y callbacks SCI-LS vacios.', evidence:'scils->rasta_handle = handle; scils->sciNamesToRastaIds = hashmap_new().' },
+  { id:'deep-scils-alloc', group:'sci', x:560, y:620, title:'malloc scils_t', code:'rmalloc(sizeof(scils_t))', file:'src/sci/c/scils.c:39', why:'Reserva la instancia SCI-LS.', input:'sizeof(scils_t).', output:'Puntero scils_t.', evidence:'scils_t * scils = rmalloc(sizeof(scils_t)).' },
+  { id:'deep-scils-rasta-ref', group:'sci', x:820, y:720, title:'Referencia RaSTA', code:'scils->rasta_handle', file:'src/sci/c/scils.c:41', why:'Une SCI-LS con el transporte RaSTA ya inicializado.', input:'handle pasado por main.', output:'SCI-LS podra llamar sr_send y leer datos recibidos.', evidence:'scils->rasta_handle = handle.' },
+  { id:'deep-scils-name', group:'sci', x:560, y:720, title:'Nombre SCI local', code:'scils->sciName', file:'src/sci/c/scils.c:42', why:'Guarda el nombre logico usado como sender en telegramas SCI-LS.', input:'SCI_NAME_S o SCI_NAME_C.', output:'Campo sender de futuras factories SCI.', evidence:'strcpy(scils->sciName, sciName).' },
+  { id:'deep-scils-map', group:'sci', x:560, y:820, title:'Mapa SCI->RaSTA', code:'hashmap_new()', file:'src/sci/c/scils.c:45', why:'Permite traducir receiver "S" a ID RaSTA 0x61 al enviar.', input:'Inicialmente vacio.', output:'sciNamesToRastaIds.', evidence:'scils_register_sci_name inserta pares nombre/ID.' },
+  { id:'deep-scils-notifs', group:'sci', x:560, y:920, title:'Callbacks SCI-LS NULL', code:'notifications.* = NULL', file:'src/sci/c/scils.c:48', why:'Prepara todos los handlers SCI-LS antes de que main registre los que usa la demo.', input:'scils_t recien creado.', output:'on_show_signal_aspect_received, on_signal_aspect_status_received, etc. a NULL.', evidence:'scils->notifications.on_show_signal_aspect_received = NULL.' },
+  { id:'deep-register-name', group:'sci', x:820, y:850, title:'Registrar nombre remoto', code:'scils_register_sci_name', file:'src/sci/c/scils.c:289', why:'En el cliente remoto, mapea el nombre SCI "S" al ID RaSTA del servidor.', input:'SCI_NAME_S y ID_S.', output:'hashmap con "S" -> 0x61.', evidence:'hashmap_put(ls->sciNamesToRastaIds, key, (any_t) rasta_id).' },
+
+  { id:'deep-sr-connect', group:'rasta', x:300, y:870, title:'sr_connect', code:'canal + ConReq', file:'src/rasta/c/rasta_new.c:1612', why:'Crea la conexion cliente hacia el servidor y lanza el handshake RaSTA.', input:'ID_S y toServer con SERVER_CH1/SERVER_CH2.', output:'Canal redundante asociado, connection struct y ConnectionRequest enviada.', evidence:'redundancy_mux_add_channel(); sr_init_connection(); createConnectionRequest().' },
+  { id:'deep-add-channel', group:'red', x:560, y:1040, title:'Añadir canal', code:'redundancy_mux_add_channel', file:'src/rasta/c/rasta_new.c:1619', why:'Registra los endpoints remotos por los que enviar al servidor.', input:'toServer[0..1].', output:'rasta_redundancy_channel asociado a ID_S.', evidence:'sr_connect llama redundancy_mux_add_channel(&handle->mux,id,channels).' },
+  { id:'deep-init-connection', group:'rasta', x:820, y:1040, title:'sr_init_connection', code:'estado cliente', file:'src/rasta/c/rasta_new.c:1622', why:'Inicializa la estructura de conexion SR del cliente.', input:'remote id, general config, sending config, RASTA_ROLE_CLIENT.', output:'sn_t, cs_t, cts_r, t_i y estado inicial.', evidence:'sr_init_connection(&new_con, id, ..., RASTA_ROLE_CLIENT).' },
+  { id:'deep-conreq', group:'rasta', x:1080, y:1040, title:'ConnectionRequest', code:'createConnectionRequest', file:'src/rasta/c/rasta_new.c:1639', why:'Crea la primera PDU RaSTA del handshake.', input:'remote_id, my_id, sn_t, timestamp, send_max, version.', output:'RastaPacket ConReq.', evidence:'createConnectionRequest(..., &handle->hashing_context).' },
+  { id:'deep-connect-send', group:'red', x:1340, y:1040, title:'Enviar ConReq', code:'redundancy_mux_send', file:'src/rasta/c/rasta_new.c:1645', why:'Entrega la ConnectionRequest a la capa de redundancia/UDP.', input:'RastaPacket ConReq.', output:'Datagramas UDP a los canales del servidor.', evidence:'redundancy_mux_send(&handle->mux, conreq).' }
+];
+
+const deepEdges = [
+  ['deep-main-s','deep-sr-init'], ['deep-main-c','deep-sr-init'], ['deep-main-s','deep-scils-init'], ['deep-main-c','deep-scils-init'], ['deep-main-c','deep-sr-connect'], ['deep-main-c','deep-register-name'],
+  ['deep-sr-init','deep-handle-init'], ['deep-sr-init','deep-redmux-init'], ['deep-sr-init','deep-sr-hash'], ['deep-sr-init','deep-sr-start'],
+  ['deep-handle-init','deep-config-load'], ['deep-handle-init','deep-logger'], ['deep-handle-init','deep-accepted'], ['deep-handle-init','deep-notifs-null'], ['deep-handle-init','deep-connections'], ['deep-handle-init','deep-handle-hash'], ['deep-handle-init','deep-subhandles'],
+  ['deep-subhandles','deep-recv-handle'], ['deep-subhandles','deep-send-handle'], ['deep-subhandles','deep-hb-handle'],
+  ['deep-redmux-init','deep-redmux-memory'], ['deep-redmux-init','deep-udp-init'], ['deep-udp-init','deep-udp-bind'],
+  ['deep-sr-start','deep-mux-open'], ['deep-sr-start','deep-start-recv'], ['deep-sr-start','deep-start-hb'], ['deep-sr-start','deep-start-send'],
+  ['deep-recv-handle','deep-start-recv'], ['deep-hb-handle','deep-start-hb'], ['deep-send-handle','deep-start-send'],
+  ['deep-scils-init','deep-scils-alloc'], ['deep-scils-init','deep-scils-name'], ['deep-scils-init','deep-scils-map'], ['deep-scils-init','deep-scils-notifs'], ['deep-scils-init','deep-scils-rasta-ref'], ['deep-register-name','deep-scils-map'],
+  ['deep-sr-connect','deep-add-channel'], ['deep-sr-connect','deep-init-connection'], ['deep-sr-connect','deep-conreq'], ['deep-conreq','deep-connect-send'], ['deep-add-channel','deep-connect-send']
+];
+
+const timeline = [
+  ['docker-script','Se crea rastanet y se construye la imagen con IPs 10.10.10.x.'],
+  ['dockerfile-sed','El Dockerfile reemplaza placeholders 10.0.0.x en los .cfg copiados.'],
+  ['cmake-remote','CMake compila los ejemplos remotos y copia rasta_server.cfg/rasta_client1.cfg al build.'],
+  ['server-main','El servidor ejecuta ./scils_example s, carga rasta_server.cfg y hace bind a 8888/8889.'],
+  ['client-main','El cliente ejecuta ./scils_example c, carga rasta_client1.cfg y prepara toServer con SERVER_CH1/2.'],
+  ['sr-connect','El cliente llama sr_connect(), añade canal redundante y manda ConnectionRequest.'],
+  ['handshake-callback','Tras el handshake, el callback cliente entra solo si my_id es ID_C.'],
+  ['show-defaults','El cliente reserva un scils_signal_aspect y rellena defaults observables OFF/no information/show.'],
+  ['hp0-enum','El cliente cambia solo main a SCILS_MAIN_HP_0, que en el header vale 0x01.'],
+  ['send-show','scils_send_show_signal_aspect crea el telegrama SHOW usando sender local y receiver "S".'],
+  ['show-payload','La factory SHOW serializa los diez campos del aspect en un payload de 9 bytes.'],
+  ['sci-wire-layout','SCI codifica protocolo, tipo, sender, receiver y payload en un RastaByteArray.'],
+  ['sr-send','RaSTA mete esos bytes en la cola de envio, los empaqueta como DATA y RedMux los envia por UDP.'],
+  ['parse-show','El servidor parsea los 9 bytes SHOW y reconstruye signal_aspect para el callback.'],
+  ['status-response','El servidor demo responde con SIGNAL_ASPECT_STATUS usando el aspect recibido.'],
+  ['status-factory','La factory STATUS serializa 7 bytes: no incluye deprecation_information ni driveway.'],
+  ['parse-status','El cliente parsea STATUS y reconstruye el aspect parcial reportado.'],
+  ['client-status','El cliente imprime el main recibido, por ejemplo 0x01 para HP0.']
+];
+
+const snippets = [
+  { id:'script', label:'rasta-docker.sh', node:'docker-script', code:String.raw`# Red y build remoto
+docker network create --driver=bridge --ip-range=10.10.10.0/24 --subnet=10.10.10.0/24 rastanet
+
+docker build \
+  --build-arg SERVER_CH1="10.10.10.100" \
+  --build-arg SERVER_CH2="10.10.10.100" \
+  --build-arg CLIENT1_CH1="10.10.10.110" \
+  --build-arg CLIENT1_CH2="10.10.10.110" \
+  -t rastac .
+
+docker run -di --network rastanet --ip 10.10.10.100 --name rasta-server rastac
+docker run -di --network rastanet --ip 10.10.10.110 --name rasta-client1 rastac
+
+docker exec -it rasta-server  /bin/sh -c "cd /opt/rasta-c/build/bin/exe/examples && ./scils_example s"
+docker exec -it rasta-client1 /bin/sh -c "cd /opt/rasta-c/build/bin/exe/examples && ./scils_example c"` },
+  { id:'dockerfile', label:'Dockerfile', node:'dockerfile-sed', code:String.raw`ARG SERVER_CH1
+ARG SERVER_CH2
+ARG CLIENT1_CH1
+ARG CLIENT1_CH2
+
+RUN sed -i -e "s/10.0.0.100/$SERVER_CH1/g" /opt/rasta-c/config/rasta_server.cfg &&\
+    sed -i -e "s/10.0.0.101/$SERVER_CH2/g" /opt/rasta-c/config/rasta_server.cfg &&\
+    sed -i -e "s/10.0.0.200/$CLIENT1_CH1/g" /opt/rasta-c/config/rasta_client1.cfg &&\
+    sed -i -e "s/10.0.0.201/$CLIENT1_CH2/g" /opt/rasta-c/config/rasta_client1.cfg
+
+RUN cd /opt/rasta-c/ && mkdir -p build && cd build && cmake -DEXAMPLE_IP_OVERRIDE:BOOL=ON .. && make` },
+  { id:'cmake', label:'CMake remoto', node:'cmake-remote', code:String.raw`if(BUILD_REMOTE_EXAMPLES)
+  add_executable(scils_example
+      src/scils_example/c/main.c)
+  target_link_libraries(scils_example rasta)
+
+  configure_file(config/rasta_server.cfg rasta_server.cfg COPYONLY)
+  configure_file(config/rasta_client1.cfg rasta_client1.cfg COPYONLY)
+
+  if (EXAMPLE_IP_OVERRIDE)
+    add_compile_definitions(EXAMPLE_IP_OVERRIDE)
+  endif(EXAMPLE_IP_OVERRIDE)
+endif(BUILD_REMOTE_EXAMPLES)` },
+  { id:'main', label:'scils_example main', node:'client-main', code:String.raw`#define CONFIG_PATH_S "../../../rasta_server.cfg"
+#define CONFIG_PATH_C "../../../rasta_client1.cfg"
+
+#ifdef EXAMPLE_IP_OVERRIDE
+strcpy(toServer[0].ip, getenv("SERVER_CH1"));
+strcpy(toServer[1].ip, getenv("SERVER_CH2"));
+#else
+strcpy(toServer[0].ip, "10.0.0.100");
+strcpy(toServer[1].ip, "10.0.0.101");
+#endif
+
+if (strcmp(argv[1], "s") == 0) {
+  sr_init_handle(&h, CONFIG_PATH_S);
+  scils = scils_init(&h, SCI_NAME_S);
+  scils->notifications.on_show_signal_aspect_received = onShowSignalAspect;
+} else if (strcmp(argv[1], "c") == 0) {
+  sr_init_handle(&h, CONFIG_PATH_C);
+  sr_connect(&h, ID_S, toServer);
+  scils = scils_init(&h, SCI_NAME_C);
+  scils_register_sci_name(scils, SCI_NAME_S, ID_S);
+}` },
+  { id:'show', label:'SHOW callback', node:'handshake-callback', code:String.raw`void onHandshakeComplete(struct rasta_notification_result *result) {
+  if (result->connection.my_id == ID_C){
+    scils_signal_aspect * signal_aspect = scils_signal_aspect_defaults();
+    signal_aspect->main = SCILS_MAIN_HP_0;
+    scils_send_show_signal_aspect(scils, SCI_NAME_S, *signal_aspect);
+    rfree(signal_aspect);
+  }
+}` },
+  { id:'defaults', label:'Aspect defaults', node:'show-defaults', code:String.raw`scils_signal_aspect * scils_signal_aspect_defaults(){
+  scils_signal_aspect * signal_aspect = rmalloc(sizeof(scils_signal_aspect));
+
+  signal_aspect->main = SCILS_MAIN_OFF;
+  signal_aspect->additional = SCILS_ADDITIONAL_OFF;
+  signal_aspect->zs3 = SCILS_ZS3_OFF;
+  signal_aspect->zs3v = SCILS_ZS3_OFF;
+  signal_aspect->zs2 = SCILS_ZS2_OFF;
+  signal_aspect->zs2v = SCILS_ZS2_OFF;
+  signal_aspect->deprecation_information = SCILS_DEPRECIATION_INFORMATION_NO_INFORMATION;
+  signal_aspect->upstream_driveway_information = SCILS_DRIVE_WAY_INFORMATION_NO_INFORMATION;
+  signal_aspect->downstream_driveway_information = SCILS_DRIVE_WAY_INFORMATION_NO_INFORMATION;
+  signal_aspect->dark_switching = SCILS_DARK_SWITCHING_SHOW;
+
+  return signal_aspect;
+}` },
+  { id:'aspect-struct', label:'Signal aspect struct', node:'aspect-struct', code:String.raw`typedef enum {
+  SCILS_MAIN_HP_0 = 0x01,
+  SCILS_MAIN_HP_0_PLUS_SH1 = 0x02,
+  SCILS_MAIN_HP_0_WITH_DRIVING_INDICATOR = 0x03,
+  ...
+  SCILS_MAIN_OFF = 0xFF
+} scils_main;
+
+typedef struct {
+  scils_main main;
+  scils_additional additional;
+  scils_zs3 zs3;
+  scils_zs3 zs3v;
+  scils_zs2 zs2;
+  scils_zs2 zs2v;
+  scils_deprecation_information deprecation_information;
+  scils_driveway_information upstream_driveway_information;
+  scils_driveway_information downstream_driveway_information;
+  scils_dark_switching dark_switching;
+} scils_signal_aspect;` },
+  { id:'show-factory', label:'SHOW factory', node:'show-payload', code:String.raw`sci_return_code scils_send_show_signal_aspect(scils_t * ls, char * receiver, scils_signal_aspect signal_aspect){
+  sci_telegram * telegram = scils_create_show_signal_aspect(ls->sciName, receiver, signal_aspect);
+  return scils_send_telegram(ls, telegram);
+}
+
+sci_telegram * scils_create_show_signal_aspect(char * sender, char * receiver, scils_signal_aspect signal_aspect){
+  sci_telegram * telegram = sci_create_base_telegram(SCI_PROTOCOL_LS, sender, receiver,
+      SCILS_MESSAGE_TYPE_SHOW_SIGNAL_ASPECT);
+
+  telegram->payload.used_bytes = 9;
+  telegram->payload.data[0] = signal_aspect.main;
+  telegram->payload.data[1] = signal_aspect.additional;
+  telegram->payload.data[2] = signal_aspect.zs3;
+  telegram->payload.data[3] = signal_aspect.zs3v;
+  telegram->payload.data[4] = signal_aspect.zs2;
+  telegram->payload.data[5] = signal_aspect.zs2v;
+  telegram->payload.data[6] = signal_aspect.deprecation_information;
+
+  unsigned char driveway_info = (unsigned char)(signal_aspect.downstream_driveway_information << 4);
+  driveway_info |= signal_aspect.upstream_driveway_information;
+  telegram->payload.data[7] = driveway_info;
+  telegram->payload.data[8] = signal_aspect.dark_switching;
+  return telegram;
+}` },
+  { id:'status-factory', label:'STATUS factory', node:'status-factory', code:String.raw`sci_return_code scils_send_signal_aspect_status(scils_t * ls, char * receiver, scils_signal_aspect signal_aspect){
+  sci_telegram * telegram = scils_create_signal_aspect_status(ls->sciName, receiver, signal_aspect);
+  return scils_send_telegram(ls, telegram);
+}
+
+sci_telegram * scils_create_signal_aspect_status(char * sender, char * receiver, scils_signal_aspect signal_aspect){
+  sci_telegram * telegram = sci_create_base_telegram(SCI_PROTOCOL_LS, sender, receiver,
+      SCILS_MESSAGE_TYPE_SIGNAL_ASPECT_STATUS);
+
+  telegram->payload.used_bytes = 7;
+  telegram->payload.data[0] = signal_aspect.main;
+  telegram->payload.data[1] = signal_aspect.additional;
+  telegram->payload.data[2] = signal_aspect.zs3;
+  telegram->payload.data[3] = signal_aspect.zs3v;
+  telegram->payload.data[4] = signal_aspect.zs2;
+  telegram->payload.data[5] = signal_aspect.zs2v;
+  telegram->payload.data[6] = signal_aspect.dark_switching;
+  return telegram;
+}` },
+  { id:'parse-aspect', label:'Parse aspects', node:'parse-show', code:String.raw`sci_parse_result scils_parse_show_signal_aspect_payload(sci_telegram * telegram, scils_signal_aspect * signal_aspect){
+  if(sci_get_message_type(telegram) != SCILS_MESSAGE_TYPE_SHOW_SIGNAL_ASPECT){
+    return SCI_PARSE_INVALID_MESSAGE_TYPE;
+  }
+
+  signal_aspect->main = (scils_main)telegram->payload.data[0];
+  signal_aspect->additional = (scils_additional)telegram->payload.data[1];
+  signal_aspect->zs3 = (scils_zs3)telegram->payload.data[2];
+  signal_aspect->zs3v = (scils_zs3)telegram->payload.data[3];
+  signal_aspect->zs2 = (scils_zs2)telegram->payload.data[4];
+  signal_aspect->zs2v = (scils_zs2)telegram->payload.data[5];
+  signal_aspect->deprecation_information = (scils_deprecation_information)telegram->payload.data[6];
+
+  unsigned char driveway = telegram->payload.data[7];
+  signal_aspect->upstream_driveway_information = (scils_driveway_information)(unsigned char)(driveway & 0x0F);
+  signal_aspect->downstream_driveway_information = (scils_driveway_information)(unsigned char)((driveway & 0xF0) >> 4);
+  signal_aspect->dark_switching = (scils_dark_switching)telegram->payload.data[8];
+  return SCI_PARSE_SUCCESS;
+}` },
+  { id:'parse-status', label:'Parse STATUS', node:'parse-status', code:String.raw`sci_parse_result scils_parse_signal_aspect_status_payload(sci_telegram * telegram, scils_signal_aspect * signal_aspect){
+  if(sci_get_message_type(telegram) != SCILS_MESSAGE_TYPE_SIGNAL_ASPECT_STATUS){
+    return SCI_PARSE_INVALID_MESSAGE_TYPE;
+  }
+
+  signal_aspect->main = (scils_main)telegram->payload.data[0];
+  signal_aspect->additional = (scils_additional)telegram->payload.data[1];
+  signal_aspect->zs3 = (scils_zs3)telegram->payload.data[2];
+  signal_aspect->zs3v = (scils_zs3)telegram->payload.data[3];
+  signal_aspect->zs2 = (scils_zs2)telegram->payload.data[4];
+  signal_aspect->zs2v = (scils_zs2)telegram->payload.data[5];
+  signal_aspect->dark_switching = (scils_dark_switching)telegram->payload.data[6];
+  return SCI_PARSE_SUCCESS;
+}` },
+  { id:'sci-layout', label:'SCI wire layout', node:'sci-wire-layout', code:String.raw`#define SCI_TELEGRAM_LENGTH_WITHOUT_PAYLOAD 43
+#define SCI_NAME_LENGTH 20
+
+struct RastaByteArray sci_encode_telegram(sci_telegram * telegram){
+  struct RastaByteArray encoded_telegram;
+  allocateRastaByteArray(&encoded_telegram,
+      SCI_TELEGRAM_LENGTH_WITHOUT_PAYLOAD + telegram->payload.used_bytes);
+
+  encoded_telegram.bytes[0] = telegram->protocol_type;
+  rmemcpy(&encoded_telegram.bytes[1], telegram->message_type, 2);
+  rmemcpy(&encoded_telegram.bytes[3], telegram->sender, SCI_NAME_LENGTH);
+  rmemcpy(&encoded_telegram.bytes[23], telegram->receiver, SCI_NAME_LENGTH);
+
+  if (telegram->payload.used_bytes > 0){
+    rmemcpy(&encoded_telegram.bytes[43], telegram->payload.data, telegram->payload.used_bytes);
+  }
+  return encoded_telegram;
+}` },
+  { id:'scils-send', label:'SCI-LS envio', node:'encode-send', code:String.raw`sci_return_code scils_send_telegram(scils_t * ls, sci_telegram * telegram){
+  struct RastaByteArray data = sci_encode_telegram(telegram);
+
+  char * sci_name = sci_get_name_string(telegram->receiver);
+  unsigned long rastaId;
+  int res = hashmap_get(ls->sciNamesToRastaIds, sci_name, (void **) &rastaId);
+  rfree(sci_name);
+
+  if (res == MAP_MISSING){
+    return UNKNOWN_SCI_NAME;
+  }
+
+  struct RastaMessageData messageData;
+  allocateRastaMessageData(&messageData, 1);
+  messageData.data_array[0] = data;
+  sr_send(ls->rasta_handle, rastaId, messageData);
+  freeRastaMessageData(&messageData);
+  return SUCCESS;
+}` },
+  { id:'rasta-init', label:'RaSTA init', node:'sr-init', code:String.raw`void sr_init_handle(struct rasta_handle* handle, const char* config_file_path) {
+  rasta_handle_init(handle, config_file_path);
+  handle->mux = redundancy_mux_init_(handle->redlogger, handle->config.values);
+  handle->hashing_context.algorithm = RASTA_ALGO_MD4;
+  handle->hashing_context.hash_length = handle->config.values.sending.md4_type;
+  sr_start(handle);
+}` },
+  { id:'redmux', label:'RedMux/UDP', node:'redmux-init', code:String.raw`redundancy_mux redundancy_mux_init_(struct logger_t *logger, struct RastaConfigInfo config){
+  mux.port_count = config.redundancy.connections.count;
+  mux.config = config;
+  mux.udp_socket_fds = rmalloc(mux.port_count * sizeof(int));
+
+  for (unsigned int j = 0; j < mux.config.redundancy.connections.count; ++j) {
+    mux.udp_socket_fds[j] = udp_init();
+    udp_bind_device(mux.udp_socket_fds[j],
+      (uint16_t) mux.config.redundancy.connections.data[j].port,
+      mux.config.redundancy.connections.data[j].ip);
+  }
+}` },
+  { id:'receive', label:'Decode y STATUS', node:'decode-scils', code:String.raw`void scils_on_rasta_receive(scils_t * ls, rastaApplicationMessage message){
+  sci_telegram * parsed = sci_decode_telegram(message.appMessage);
+  if (parsed == NULL) return;
+  if (parsed->protocol_type != SCI_PROTOCOL_LS) return;
+
+  scils_register_sci_name(ls, parsed->sender, message.id);
+
+  switch (sci_get_message_type(parsed)){
+    case SCILS_MESSAGE_TYPE_SHOW_SIGNAL_ASPECT:
+      handle_show_signal_aspect(ls, parsed);
+      break;
+    case SCILS_MESSAGE_TYPE_SIGNAL_ASPECT_STATUS:
+      handle_signal_aspect_status(ls, parsed);
+      break;
+  }
+}` }
+];
+
+const fileGroups = [
+  ['Orquestacion Docker','rasta-docker.sh','Crea red, imagen, contenedores y ejecuta scils_example s/c.'],
+  ['Imagen y sustitucion','Dockerfile','Copia config, aplica sed a IPs remotas y compila con EXAMPLE_IP_OVERRIDE.'],
+  ['Build remoto','CMakeLists.txt','Define scils_example y copia rasta_server.cfg/rasta_client1.cfg al build.'],
+  ['Entrada SCI-LS remota','src/scils_example/c/main.c','Selecciona rol, inicializa RaSTA, registra callbacks, conecta y lanza SHOW.'],
+  ['Configs remotos','config/rasta_server.cfg · config/rasta_client1.cfg','IDs, tiempos, checksum SR, CRC redundancia, endpoints y logger.'],
+  ['Fachada SCI-LS','src/sci/c/scils.c · src/sci/headers/scils.h','API de envio, recepcion, callbacks y mapa SCI name -> RaSTA ID.'],
+  ['Factories SCI-LS','src/sci/c/scils_telegram_factory.c · src/sci/headers/scils_telegram_factory.h','Define enums/structs y construye/parsea SHOW y SIGNAL_ASPECT_STATUS.'],
+  ['SCI comun','src/sci/c/sci.c · src/sci/c/sci_telegram_factory.c','Cabecera SCI, sender/receiver, tipo de mensaje y encoding/decoding.'],
+  ['RaSTA SR','src/rasta/c/rasta_new.c','Conexion, handshake, colas, heartbeat, envio y recepcion de DATA.'],
+  ['Handle/config','src/rasta/c/rastahandle.c · src/rasta/c/config.c','Carga cfg, logger, versiones y estructuras runtime.'],
+  ['Redundancia/UDP','src/rasta/c/rasta_red_multiplexer.c · src/rasta/c/rastaredundancy_new.c · src/rasta/c/udp.c','Canales redundantes, PDU de redundancia, sockets y envio UDP.'],
+  ['Tests SCI-LS','src/sciTest/c/scilsTests.c','Comprueba defaults, bytes esperados de SHOW/STATUS y parseo de signal_aspect.']
+];
+
+const checks = [
+  ['No mezclar remoto con local','El flujo de esta pagina usa src/scils_example/c/main.c y config/rasta_server.cfg/config/rasta_client1.cfg. No usa src/examples_localhost/c/scils.c ni *_local.cfg.'],
+  ['No convertirlo en afirmacion normativa','La pagina describe un PoC de laboratorio. No demuestra cumplimiento SIL4, EN 50159, EULYNX ni RaSTA.'],
+  ['Canales Docker no son independencia fisica','SERVER_CH1 y SERVER_CH2 comparten IP en el script actual. La separacion es por puerto dentro del mismo contenedor.'],
+  ['SCI-LS y RaSTA son capas distintas','SCI-LS crea payloads de aplicacion; RaSTA/SR transporta bytes con conexion, secuencia, heartbeat y retransmision.'],
+  ['Defaults: usar implementacion y tests','El comentario del header menciona DARK, pero la implementacion y testSignalAspectDefaults() fijan dark_switching en SCILS_DARK_SWITCHING_SHOW. Esta pagina documenta el comportamiento observable del codigo.'],
+  ['Riesgo temporal en cliente','En el ejemplo remoto, sr_connect() se ejecuta antes de scils_init() y scils_register_sci_name(). Si el handshake completara muy rapido, el callback puede depender de scils global aun no inicializado.']
+];
+
+let activeFilter = 'all';
+let activeNode = 'docker-script';
+let activeDeepNode = 'deep-sr-init';
+let activeSnippet = snippets[0].id;
+const nodeById = new Map(nodes.map((n) => [n.id, n]));
+const deepNodeById = new Map(deepNodes.map((n) => [n.id, n]));
+
+function esc(value) {
+  return String(value).replace(/[&<>"']/g, (ch) => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[ch]));
+}
+
+function relatedIds(id) {
+  const ids = new Set([id]);
+  edges.forEach(([from, to]) => {
+    if (from === id) ids.add(to);
+    if (to === id) ids.add(from);
+  });
+  return ids;
+}
+
+function matchesSearch(node) {
+  const q = document.getElementById('search')?.value.trim().toLowerCase() || '';
+  if (!q) return true;
+  return [node.title, node.code, node.file, node.why, node.input, node.output, node.evidence, groups[node.group].label].join(' ').toLowerCase().includes(q);
+}
+
+function visibleNode(node) {
+  return (activeFilter === 'all' || node.group === activeFilter) && matchesSearch(node);
+}
+
+function renderMetrics() {
+  document.getElementById('metrics').innerHTML = [
+    [String(nodes.length),'nodos de ejecucion'],
+    [String(fileGroups.length),'familias de archivos'],
+    ['2','roles remotos'],
+    ['0','evidencia normativa']
+  ].map(([n,label]) => `<div class="metric"><strong>${n}</strong><span>${label}</span></div>`).join('');
+}
+
+function renderFilters() {
+  const buttons = [['all','Todo'], ...Object.entries(groups).map(([id,g]) => [id,g.label])];
+  document.getElementById('filters').innerHTML = buttons.map(([id,label]) => `<button type="button" class="${id === activeFilter ? 'is-active' : ''}" data-filter="${esc(id)}">${esc(label)}</button>`).join('');
+  document.querySelectorAll('[data-filter]').forEach((button) => {
+    button.addEventListener('click', () => {
+      activeFilter = button.dataset.filter;
+      renderFilters();
+      renderGraph();
+      renderStats();
+    });
+  });
+}
+
+function renderStats() {
+  const visible = nodes.filter(visibleNode);
+  const rows = [
+    ['Visibles', visible.length],
+    ['Total', nodes.length],
+    ['Docker/build', visible.filter((n) => ['docker','build'].includes(n.group)).length],
+    ['SCI/RaSTA/red', visible.filter((n) => ['sci','rasta','red'].includes(n.group)).length]
+  ];
+  document.getElementById('stats').innerHTML = rows.map(([k,v]) => `<div class="stat"><span>${esc(k)}</span><strong>${v}</strong></div>`).join('');
+}
+
+function renderLegend() {
+  document.getElementById('legend').innerHTML = Object.values(groups).map((g) => `<span><i class="dot" style="--dot:${g.color}"></i>${esc(g.label)}</span>`).join('');
+}
+
+function nodeFill(group) {
+  return document.documentElement.dataset.theme === 'dark'
+    ? 'color-mix(in srgb, ' + groups[group].color + ' 18%, #111827)'
+    : 'color-mix(in srgb, ' + groups[group].color + ' 12%, #ffffff)';
+}
+
+function deepRelatedIds(id) {
+  const ids = new Set([id]);
+  deepEdges.forEach(([from, to]) => {
+    if (from === id) ids.add(to);
+    if (to === id) ids.add(from);
+  });
+  return ids;
+}
+
+function renderDeepGraph() {
+  const svg = document.getElementById('deep-graph');
+  if (!svg) return;
+  const rel = deepRelatedIds(activeDeepNode);
+  svg.innerHTML = `<defs><marker id="deep-arrow" markerWidth="10" markerHeight="10" refX="9" refY="3" orient="auto" markerUnits="strokeWidth"><path d="M0,0 L0,6 L9,3 z" fill="currentColor"></path></marker></defs>`;
+  deepEdges.forEach(([from, to]) => {
+    const a = deepNodeById.get(from);
+    const b = deepNodeById.get(to);
+    if (!a || !b) return;
+    const line = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+    const startX = a.x + 105;
+    const startY = a.y + 41;
+    const endX = b.x + 8;
+    const endY = b.y + 41;
+    const midX = (startX + endX) / 2;
+    line.setAttribute('d', `M ${startX} ${startY} C ${midX} ${startY}, ${midX} ${endY}, ${endX} ${endY}`);
+    line.setAttribute('class', `deep-edge ${rel.has(from) && rel.has(to) ? 'is-active' : 'is-dim'}`);
+    svg.appendChild(line);
+  });
+  deepNodes.forEach((n) => {
+    const g = document.createElementNS('http://www.w3.org/2000/svg', 'g');
+    const isActive = n.id === activeDeepNode;
+    const isRelated = rel.has(n.id);
+    g.setAttribute('class', `deep-node ${isActive ? 'is-active' : ''} ${isRelated ? 'is-related' : 'is-dim'}`);
+    g.setAttribute('transform', `translate(${n.x},${n.y})`);
+    g.setAttribute('tabindex', '0');
+    g.setAttribute('role', 'button');
+    g.setAttribute('aria-label', n.title);
+    g.innerHTML = `<rect x="0" y="0" width="210" height="82" rx="8" fill="${nodeFill(n.group)}" stroke="${groups[n.group].color}"></rect>
+      <text x="12" y="20" font-size="12" fill="${groups[n.group].color}">${esc(groups[n.group].label)}</text>
+      <text x="12" y="42" font-size="14">${esc(n.title)}</text>
+      <text x="12" y="60" font-size="10">${esc(n.code)}</text>
+      <text x="12" y="75" font-size="9">${esc(n.file)}</text>`;
+    g.addEventListener('click', () => selectDeepNode(n.id));
+    g.addEventListener('keydown', (event) => {
+      if (event.key === 'Enter' || event.key === ' ') {
+        event.preventDefault();
+        selectDeepNode(n.id);
+      }
+    });
+    svg.appendChild(g);
+  });
+}
+
+function selectDeepNode(id, scroll) {
+  if (!deepNodeById.has(id)) return;
+  activeDeepNode = id;
+  renderDeepGraph();
+  renderDeepInspector();
+  if (scroll) document.getElementById('mapa-profundo').scrollIntoView({ behavior:'smooth', block:'start' });
+}
+
+function renderDeepInspector() {
+  const n = deepNodeById.get(activeDeepNode);
+  const facts = [
+    ['Nodo profundo', `<strong>${esc(n.title)}</strong>`],
+    ['Código', `<code>${esc(n.code)}</code>`],
+    ['Archivo', `<span class="path">${esc(n.file)}</span>`],
+    ['Qué resuelve', esc(n.why)],
+    ['Entrada', esc(n.input)],
+    ['Salida / dependencia creada', esc(n.output)],
+    ['Evidencia del repo', esc(n.evidence)]
+  ];
+  document.getElementById('deep-facts').innerHTML = facts.map(([k,v]) => `<div class="fact"><strong>${esc(k)}</strong>${v}</div>`).join('');
+  const neighbours = deepEdges.flatMap(([from, to]) => {
+    if (from === activeDeepNode) return [{ id:to, dir:'depende / llama a' }];
+    if (to === activeDeepNode) return [{ id:from, dir:'lo alimenta' }];
+    return [];
+  });
+  document.getElementById('deep-path').innerHTML = neighbours.length
+    ? neighbours.map((item) => {
+      const node = deepNodeById.get(item.id);
+      return `<button type="button" data-deep-node="${esc(item.id)}"><strong>${esc(item.dir)}</strong><br>${esc(node.title)}<br><code>${esc(node.file)}</code></button>`;
+    }).join('')
+    : '<p>No hay vecinos directos en esta vista.</p>';
+  document.querySelectorAll('[data-deep-node]').forEach((button) => {
+    button.addEventListener('click', () => selectDeepNode(button.dataset.deepNode));
+  });
+}
+
+function renderGraph() {
+  const svg = document.getElementById('graph');
+  const rel = relatedIds(activeNode);
+  const visible = new Set(nodes.filter(visibleNode).map((n) => n.id));
+  svg.innerHTML = `<defs><marker id="arrow" markerWidth="10" markerHeight="10" refX="9" refY="3" orient="auto" markerUnits="strokeWidth"><path d="M0,0 L0,6 L9,3 z" fill="currentColor"></path></marker></defs>`;
+  edges.forEach(([from, to]) => {
+    const a = nodeById.get(from);
+    const b = nodeById.get(to);
+    if (!a || !b) return;
+    const line = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+    const startX = a.x + 92;
+    const startY = a.y + 36;
+    const endX = b.x + 8;
+    const endY = b.y + 36;
+    const midX = (startX + endX) / 2;
+    line.setAttribute('d', `M ${startX} ${startY} C ${midX} ${startY}, ${midX} ${endY}, ${endX} ${endY}`);
+    line.setAttribute('class', `edge ${rel.has(from) && rel.has(to) ? 'is-active' : ''} ${visible.has(from) && visible.has(to) ? '' : 'is-dim'}`);
+    svg.appendChild(line);
+  });
+  nodes.forEach((n) => {
+    const g = document.createElementNS('http://www.w3.org/2000/svg', 'g');
+    const isVisible = visible.has(n.id);
+    const isActive = n.id === activeNode;
+    const isRelated = rel.has(n.id);
+    g.setAttribute('class', `node ${isVisible ? '' : 'is-dim'} ${isActive ? 'is-active' : ''} ${isRelated ? 'is-related' : ''}`);
+    g.setAttribute('transform', `translate(${n.x},${n.y})`);
+    g.setAttribute('tabindex', '0');
+    g.setAttribute('role', 'button');
+    g.setAttribute('aria-label', n.title);
+    g.dataset.id = n.id;
+    g.innerHTML = `<rect x="0" y="0" width="190" height="72" rx="8" fill="${nodeFill(n.group)}" stroke="${groups[n.group].color}"></rect>
+      <text x="12" y="21" font-size="12" fill="${groups[n.group].color}">${esc(groups[n.group].label)}</text>
+      <text x="12" y="43" font-size="14">${esc(n.title)}</text>
+      <text x="12" y="61" font-size="10">${esc(n.file)}</text>`;
+    g.addEventListener('click', () => selectNode(n.id));
+    g.addEventListener('keydown', (event) => {
+      if (event.key === 'Enter' || event.key === ' ') {
+        event.preventDefault();
+        selectNode(n.id);
+      }
+    });
+    svg.appendChild(g);
+  });
+}
+
+function selectNode(id, scroll) {
+  if (!nodeById.has(id)) return;
+  activeNode = id;
+  renderGraph();
+  renderInspector();
+  renderSelectedFlow();
+  renderTimeline();
+  if (scroll) document.getElementById('inspector').scrollIntoView({ behavior:'smooth', block:'start' });
+}
+
+function renderInspector() {
+  const n = nodeById.get(activeNode);
+  document.getElementById('inspector-title').textContent = n.title;
+  document.getElementById('inspector-summary').textContent = n.why;
+  const facts = [
+    ['Capa', groups[n.group].label],
+    ['Codigo / valor', `<code>${esc(n.code)}</code>`],
+    ['Archivo', `<span class="path">${esc(n.file)}</span>`],
+    ['Entrada', esc(n.input)],
+    ['Salida / efecto', esc(n.output)],
+    ['Evidencia', esc(n.evidence)]
+  ];
+  document.getElementById('inspector-facts').innerHTML = facts.map(([k,v]) => `<div class="fact"><strong>${esc(k)}</strong>${v}</div>`).join('');
+  const deps = edges.flatMap(([from,to]) => {
+    if (from === activeNode) return [{ id:to, dir:'sale hacia' }];
+    if (to === activeNode) return [{ id:from, dir:'entra desde' }];
+    return [];
+  });
+  document.getElementById('dependency-list').innerHTML = deps.length
+    ? deps.map((d) => `<button type="button" data-node="${esc(d.id)}"><strong>${esc(d.dir)}</strong><br>${esc(nodeById.get(d.id).title)}<br><code>${esc(nodeById.get(d.id).file)}</code></button>`).join('')
+    : '<p>No hay dependencias directas en este mapa.</p>';
+  document.querySelectorAll('[data-node]').forEach((button) => button.addEventListener('click', () => selectNode(button.dataset.node, true)));
+}
+
+function renderSelectedFlow() {
+  const rel = [...relatedIds(activeNode)].map((id) => nodeById.get(id)).filter(Boolean);
+  document.getElementById('selected-flow').innerHTML = rel.map((n) => `<div class="flow-item"><strong>${esc(n.title)}</strong><br><code>${esc(n.file)}</code></div>`).join('');
+}
+
+function renderTimeline() {
+  document.getElementById('timeline').innerHTML = timeline.map(([id, text], index) => {
+    const n = nodeById.get(id);
+    return `<article class="step ${id === activeNode ? 'is-active' : ''}" data-step-node="${esc(id)}">
+      <div class="step-index">${index + 1}</div>
+      <div><h3>${esc(n.title)}</h3><p>${esc(text)}</p><p><code>${esc(n.file)}</code></p></div>
+    </article>`;
+  }).join('');
+  document.querySelectorAll('[data-step-node]').forEach((step) => step.addEventListener('click', () => selectNode(step.dataset.stepNode, true)));
+}
+
+function renderFiles() {
+  document.getElementById('file-matrix').innerHTML = fileGroups.map(([title, files, desc]) => `<article class="file-card">
+    <h3>${esc(title)}</h3>
+    <code>${esc(files)}</code>
+    <p>${esc(desc)}</p>
+  </article>`).join('');
+}
+
+function renderSnippets() {
+  document.getElementById('code-tabs').innerHTML = snippets.map((s) => `<button type="button" class="${s.id === activeSnippet ? 'is-active' : ''}" data-snippet="${esc(s.id)}">${esc(s.label)}</button>`).join('');
+  const snippet = snippets.find((s) => s.id === activeSnippet) || snippets[0];
+  document.getElementById('code-view').textContent = snippet.code;
+  document.querySelectorAll('[data-snippet]').forEach((button) => button.addEventListener('click', () => {
+    activeSnippet = button.dataset.snippet;
+    renderSnippets();
+    const node = snippets.find((s) => s.id === activeSnippet)?.node;
+    if (node) selectNode(node);
+  }));
+}
+
+function renderChecks() {
+  document.getElementById('checklist').innerHTML = checks.map(([title, body]) => `<article class="check"><strong>${esc(title)}</strong><p>${esc(body)}</p></article>`).join('');
+}
+
+function showCodeForNode() {
+  const snippet = snippets.find((s) => s.node === activeNode);
+  if (snippet) activeSnippet = snippet.id;
+  renderSnippets();
+  document.getElementById('codigo').scrollIntoView({ behavior:'smooth', block:'start' });
+}
+
+function initThemeButton() {
+  const button = document.getElementById('theme-toggle');
+  const update = () => {
+    const dark = document.documentElement.dataset.theme === 'dark';
+    button.textContent = dark ? 'Modo claro' : 'Modo oscuro';
+    button.setAttribute('aria-pressed', String(dark));
+  };
+  button.addEventListener('click', () => {
+    document.documentElement.dataset.theme = document.documentElement.dataset.theme === 'dark' ? 'light' : 'dark';
+    localStorage.setItem('remote-scils-rasta-theme', document.documentElement.dataset.theme);
+    update();
+    renderGraph();
+    renderDeepGraph();
+  });
+  update();
+}
+
+document.getElementById('search').addEventListener('input', () => {
+  renderGraph();
+  renderStats();
+});
+document.getElementById('reset-view').addEventListener('click', () => {
+  activeFilter = 'all';
+  document.getElementById('search').value = '';
+  selectNode('docker-script');
+  renderFilters();
+  renderStats();
+});
+document.getElementById('show-code').addEventListener('click', showCodeForNode);
+document.querySelectorAll('[data-jump]').forEach((button) => button.addEventListener('click', () => selectNode(button.dataset.jump, true)));
+document.querySelectorAll('[data-deep-jump]').forEach((button) => {
+  button.addEventListener('click', () => selectDeepNode(button.dataset.deepJump, true));
+});
+document.getElementById('deep-reset').addEventListener('click', () => selectDeepNode('deep-sr-init'));
+
+renderMetrics();
+renderFilters();
+renderStats();
+renderLegend();
+renderGraph();
+renderDeepGraph();
+renderInspector();
+renderDeepInspector();
+renderSelectedFlow();
+renderTimeline();
+renderFiles();
+renderSnippets();
+renderChecks();
+initThemeButton();
+</script>
+</body>
+</html>

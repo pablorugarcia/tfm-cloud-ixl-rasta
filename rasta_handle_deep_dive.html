@@ -1,0 +1,845 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>RaSTA handle · mapa profundo</title>
+<script>
+(function () {
+  const key = 'rasta-handle-deep-theme';
+  const saved = localStorage.getItem(key);
+  const prefersDark = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
+  document.documentElement.dataset.theme = saved || (prefersDark ? 'dark' : 'light');
+})();
+</script>
+<style>
+:root {
+  --bg:#eef2f6;
+  --panel:#ffffff;
+  --soft:#f8fafc;
+  --ink:#172033;
+  --muted:#58657a;
+  --line:#d8e0ea;
+  --line-strong:#a8b4c4;
+  --blue:#075985;
+  --cyan:#0891b2;
+  --green:#15803d;
+  --amber:#b45309;
+  --rose:#be123c;
+  --violet:#6d28d9;
+  --teal:#0f766e;
+  --slate:#475569;
+  --shadow:0 18px 45px rgba(15,23,42,.10);
+  --radius:8px;
+}
+html[data-theme="dark"] {
+  --bg:#0f172a;
+  --panel:#111827;
+  --soft:#0b1220;
+  --ink:#f8fafc;
+  --muted:#cbd5e1;
+  --line:#334155;
+  --line-strong:#64748b;
+  --blue:#7dd3fc;
+  --cyan:#22d3ee;
+  --green:#86efac;
+  --amber:#fbbf24;
+  --rose:#fda4af;
+  --violet:#c4b5fd;
+  --teal:#5eead4;
+  --slate:#94a3b8;
+  --shadow:0 18px 45px rgba(0,0,0,.32);
+}
+* { box-sizing:border-box; }
+body { margin:0; background:var(--bg); color:var(--ink); font-family:Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; }
+button,input { font:inherit; }
+code,pre { font-family:"SFMono-Regular", Consolas, "Liberation Mono", Menlo, monospace; }
+.topbar { position:sticky; top:0; z-index:50; display:flex; flex-wrap:wrap; gap:10px; align-items:center; justify-content:space-between; border-bottom:1px solid var(--line); background:color-mix(in srgb,var(--panel) 92%,transparent); backdrop-filter:blur(12px); padding:10px 18px; }
+.brand { display:flex; gap:10px; align-items:center; font-weight:950; }
+.brand-mark { width:34px; height:34px; border-radius:8px; display:grid; place-items:center; background:#075985; color:#fff; font-weight:950; }
+.nav { display:flex; flex-wrap:wrap; gap:8px; align-items:center; }
+.nav a,.nav button,.pill-button,.filter button,.tab-button { cursor:pointer; border:1px solid var(--line); background:var(--panel); color:var(--ink); border-radius:999px; padding:8px 11px; font-weight:850; text-decoration:none; font-size:.86rem; }
+.nav a:hover,.nav button:hover,.pill-button:hover,.filter button:hover,.filter button.is-active,.tab-button:hover,.tab-button.is-active { border-color:var(--cyan); color:var(--blue); background:color-mix(in srgb,var(--cyan) 9%,var(--panel)); box-shadow:0 0 0 3px color-mix(in srgb,var(--cyan) 22%,transparent); }
+header { padding:30px 18px 14px; }
+.hero { max-width:1420px; margin:0 auto; display:grid; grid-template-columns:minmax(0,1.2fr) minmax(320px,.8fr); gap:18px; align-items:start; }
+.eyebrow { color:var(--rose); font-size:.78rem; font-weight:950; letter-spacing:.08em; text-transform:uppercase; }
+h1 { margin:9px 0 10px; font-size:clamp(2rem,5vw,4.1rem); line-height:1.03; letter-spacing:0; max-width:980px; }
+.subtitle { max-width:940px; margin:0; color:var(--muted); font-size:1.04rem; line-height:1.65; }
+.notice { border:1px solid color-mix(in srgb,var(--amber) 45%,var(--line)); background:color-mix(in srgb,var(--amber) 11%,var(--panel)); border-radius:var(--radius); padding:14px; line-height:1.55; }
+.metrics { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:10px; margin-top:12px; }
+.metric { border:1px solid var(--line); background:var(--panel); border-radius:var(--radius); padding:12px; box-shadow:var(--shadow); }
+.metric strong { display:block; font-size:1.55rem; margin-bottom:3px; }
+.metric span { color:var(--muted); font-weight:750; font-size:.88rem; }
+main { max-width:1420px; margin:0 auto; padding:0 18px 40px; }
+.layout { display:grid; grid-template-columns:minmax(280px,.34fr) minmax(0,1fr); gap:16px; align-items:start; }
+.sidebar { position:sticky; top:74px; display:grid; gap:12px; }
+.panel { border:1px solid var(--line); background:var(--panel); border-radius:var(--radius); box-shadow:var(--shadow); padding:16px; min-width:0; }
+.panel h2,.panel h3 { margin:0 0 10px; letter-spacing:0; }
+.panel p { color:var(--muted); line-height:1.58; }
+.search label { display:grid; gap:7px; color:var(--ink); font-weight:900; }
+.search input { width:100%; border:1px solid var(--line-strong); background:var(--soft); color:var(--ink); border-radius:var(--radius); padding:10px 12px; }
+.search input:focus { outline:3px solid color-mix(in srgb,var(--cyan) 25%,transparent); border-color:var(--cyan); }
+.filter { display:flex; flex-wrap:wrap; gap:8px; }
+.stat-list { display:grid; gap:8px; margin-top:10px; }
+.stat { display:flex; justify-content:space-between; gap:10px; border:1px solid var(--line); border-radius:var(--radius); background:var(--soft); padding:8px 10px; color:var(--muted); font-size:.88rem; }
+.stat strong { color:var(--ink); }
+.content { display:grid; gap:16px; min-width:0; }
+.section-title { display:flex; flex-wrap:wrap; justify-content:space-between; gap:12px; align-items:flex-end; margin-bottom:12px; }
+.section-title p { margin:0; max-width:880px; }
+.diagram-shell { min-height:760px; overflow:auto; border:1px solid var(--line); border-radius:var(--radius); background:var(--soft); }
+#overview-graph { min-width:1500px; height:820px; display:block; }
+#struct-graph { min-width:1640px; height:820px; display:block; }
+.node { cursor:pointer; }
+.node rect { stroke-width:1.4; transition:filter .16s ease, opacity .16s ease, stroke-width .16s ease; }
+.node text { pointer-events:none; font-weight:850; fill:#0f172a; }
+html[data-theme="dark"] .node text { fill:#f8fafc; }
+.node.is-dim rect,.edge.is-dim { opacity:.16; }
+.node.is-active rect { stroke-width:3; filter:drop-shadow(0 0 10px rgba(245,158,11,.65)); }
+.node.is-related rect { stroke-width:2.4; }
+.edge { stroke:var(--line-strong); stroke-width:1.8; fill:none; marker-end:url(#arrow); transition:opacity .16s ease, stroke .16s ease, stroke-width .16s ease; }
+.edge.is-active { stroke:var(--amber); stroke-width:3; opacity:1; }
+.legend { display:flex; flex-wrap:wrap; gap:8px; margin-top:10px; }
+.legend span,.tag { display:inline-flex; align-items:center; gap:6px; border:1px solid var(--line); border-radius:999px; padding:5px 8px; color:var(--muted); background:var(--panel); font-size:.8rem; font-weight:850; }
+.dot { width:10px; height:10px; border-radius:999px; background:var(--dot); }
+.inspector-grid { display:grid; grid-template-columns:minmax(0,1fr) minmax(290px,.38fr); gap:12px; margin-top:12px; }
+.fact-grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(220px,1fr)); gap:10px; }
+.fact { border:1px solid var(--line); border-radius:var(--radius); background:var(--soft); padding:10px; min-width:0; }
+.fact strong { display:block; margin-bottom:5px; }
+.fact code,.path { overflow-wrap:anywhere; color:var(--blue); }
+.neighbor-list { display:grid; gap:8px; }
+.neighbor-list button,.function-card { cursor:pointer; text-align:left; border:1px solid var(--line); background:var(--soft); color:var(--ink); border-radius:var(--radius); padding:9px 10px; }
+.neighbor-list button:hover,.function-card:hover,.function-card.is-active { border-color:var(--cyan); box-shadow:0 0 0 3px color-mix(in srgb,var(--cyan) 18%,transparent); }
+.guide { display:grid; gap:10px; }
+.guide-step { display:grid; grid-template-columns:44px minmax(0,1fr); gap:12px; align-items:start; border:1px solid var(--line); background:var(--panel); border-radius:var(--radius); padding:12px; }
+.guide-step strong { display:block; margin-bottom:5px; }
+.step-index { width:34px; height:34px; display:grid; place-items:center; border-radius:8px; background:color-mix(in srgb,var(--blue) 14%,var(--panel)); color:var(--blue); font-weight:950; }
+.function-layout { display:grid; grid-template-columns:320px minmax(0,1fr); gap:12px; }
+.function-list { display:grid; gap:8px; align-content:start; max-height:720px; overflow:auto; padding-right:4px; }
+.function-card h3 { margin:0 0 4px; font-size:.98rem; }
+.function-card p { margin:0; color:var(--muted); font-size:.86rem; }
+.function-detail { display:grid; gap:10px; }
+.signature { border:1px solid var(--line); background:var(--soft); border-radius:var(--radius); padding:12px; overflow:auto; }
+.param-grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(230px,1fr)); gap:10px; }
+.param { border:1px solid var(--line); background:var(--panel); border-radius:var(--radius); padding:10px; }
+.param strong { display:block; margin-bottom:5px; }
+.code-layout { display:grid; grid-template-columns:260px minmax(0,1fr); gap:12px; }
+.code-tabs { display:grid; gap:8px; align-content:start; }
+.code-tabs button { border-radius:var(--radius); text-align:left; }
+pre { margin:0; overflow:auto; border:1px solid var(--line); background:#0b1220; color:#d1fae5; border-radius:var(--radius); padding:14px; line-height:1.5; font-size:.86rem; }
+.matrix { display:grid; grid-template-columns:repeat(auto-fit,minmax(260px,1fr)); gap:10px; }
+.matrix-card { border:1px solid var(--line); background:var(--panel); border-radius:var(--radius); padding:12px; display:grid; gap:8px; }
+.matrix-card h3 { margin:0; }
+.matrix-card p { margin:0; }
+.matrix-card code { color:var(--blue); overflow-wrap:anywhere; }
+footer { max-width:1420px; margin:0 auto; padding:0 18px 28px; color:var(--muted); }
+@media (max-width:1100px) {
+  .hero,.layout,.inspector-grid,.function-layout,.code-layout { grid-template-columns:1fr; }
+  .sidebar { position:static; }
+}
+@media (max-width:680px) {
+  .metrics { grid-template-columns:1fr; }
+  .topbar { position:static; }
+  .diagram-shell { min-height:620px; }
+  #overview-graph { min-width:1100px; height:700px; }
+  #struct-graph { min-width:1160px; height:720px; }
+}
+</style>
+</head>
+<body>
+<div class="topbar">
+  <div class="brand"><span class="brand-mark">RH</span><span>RaSTA Handle · mapa profundo</span></div>
+  <nav class="nav" aria-label="Navegacion principal">
+    <a href="scils_rasta_dependency_atlas.html">Atlas principal</a>
+    <a href="remote_scils_rasta_execution.html">Ejecución remota</a>
+    <a href="#overview">Dependencias</a>
+    <a href="#estructura">Estructura</a>
+    <a href="#funciones">Funciones</a>
+    <a href="#flujo">Flujo</a>
+    <a href="#codigo">Código</a>
+    <button id="theme-toggle" type="button" aria-pressed="false">Modo oscuro</button>
+  </nav>
+</div>
+
+<header>
+  <div class="hero">
+    <div>
+      <div class="eyebrow">Rasta handle · estructura, funciones y runtime</div>
+      <h1>Mapa interactivo completo del RaSTA handle</h1>
+      <p class="subtitle">Guía profunda de <code>src/rasta/c/rastahandle.c</code>, <code>src/rasta/headers/rastahandle.h</code> y los módulos que dependen del handle: inicialización, subhandles, callbacks, hilos, RedMux, configuración, hashing, conexiones, envío, recepción y limpieza.</p>
+    </div>
+    <div class="panel">
+      <div class="notice"><strong>Límite explícito:</strong> esta página documenta el repositorio como PoC de laboratorio. No afirma cumplimiento SIL4, EN 50159, EULYNX ni RaSTA; solo traza dependencias observables en código.</div>
+      <div class="metrics" id="metrics"></div>
+    </div>
+  </div>
+</header>
+
+<main>
+  <div class="layout">
+    <aside class="sidebar">
+      <section class="panel search">
+        <label>Buscar en handle
+          <input id="search" type="search" placeholder="Ej.: receive_handle, logger, fire_on, hashing">
+        </label>
+      </section>
+      <section class="panel">
+        <h2>Filtros</h2>
+        <div class="filter" id="filters"></div>
+        <div class="stat-list" id="stats"></div>
+      </section>
+      <section class="panel">
+        <h2>Nodo seleccionado</h2>
+        <div class="stat-list" id="selected-brief"></div>
+      </section>
+    </aside>
+
+    <div class="content">
+      <section class="panel" id="overview">
+        <div class="section-title">
+          <div>
+            <h2>Diagrama completo de dependencias del handle</h2>
+            <p>Vista general de cómo el handle se crea desde la aplicación, cómo carga configuración, cómo se conecta con RedMux, SCI-LS, hilos y callbacks, y cómo se limpia.</p>
+          </div>
+          <button class="pill-button" type="button" id="reset-overview">Restablecer</button>
+        </div>
+        <div class="diagram-shell">
+          <svg id="overview-graph" viewBox="0 0 1500 820" role="img" aria-label="Dependencias generales del RaSTA handle"></svg>
+        </div>
+        <div class="legend" id="legend"></div>
+        <div class="inspector-grid">
+          <div class="fact-grid" id="overview-facts"></div>
+          <div>
+            <h3>Dependencias directas</h3>
+            <div class="neighbor-list" id="overview-neighbors"></div>
+          </div>
+        </div>
+      </section>
+
+      <section class="panel" id="estructura">
+        <div class="section-title">
+          <div>
+            <h2>Diagrama profundo de estructuras y campos</h2>
+            <p>Relación entre <code>struct rasta_handle</code>, sus subhandles, campos compartidos, punteros, flags de ejecución, callbacks y módulos externos.</p>
+          </div>
+          <button class="pill-button" type="button" id="reset-struct">Restablecer estructura</button>
+        </div>
+        <div class="diagram-shell">
+          <svg id="struct-graph" viewBox="0 0 1640 820" role="img" aria-label="Estructura profunda de rasta_handle y subhandles"></svg>
+        </div>
+        <div class="inspector-grid">
+          <div class="fact-grid" id="struct-facts"></div>
+          <div>
+            <h3>Vecinos de estructura</h3>
+            <div class="neighbor-list" id="struct-neighbors"></div>
+          </div>
+        </div>
+      </section>
+
+      <section class="panel" id="funciones">
+        <div class="section-title">
+          <div>
+            <h2>Funciones, parámetros y dependencias internas</h2>
+            <p>Explorador de funciones de <code>rastahandle.c</code> y funciones relacionadas de <code>rasta_new.c</code> que consumen o completan el handle.</p>
+          </div>
+        </div>
+        <div class="function-layout">
+          <div class="function-list" id="function-list"></div>
+          <div class="function-detail" id="function-detail"></div>
+        </div>
+      </section>
+
+      <section class="panel" id="flujo">
+        <div class="section-title">
+          <div>
+            <h2>Guía completa del proceso y flujo</h2>
+            <p>Lectura paso a paso desde el ejemplo SCI-LS remoto hasta el runtime RaSTA y la liberación de recursos.</p>
+          </div>
+        </div>
+        <div class="guide" id="flow-guide"></div>
+      </section>
+
+      <section class="panel">
+        <div class="section-title">
+          <div>
+            <h2>Matriz de responsabilidades</h2>
+            <p>Qué responsabilidad tiene cada bloque y qué frontera arquitectónica representa dentro del PoC.</p>
+          </div>
+        </div>
+        <div class="matrix" id="responsibility-matrix"></div>
+      </section>
+
+      <section class="panel" id="codigo">
+        <div class="section-title">
+          <div>
+            <h2>Fragmentos de código clave</h2>
+            <p>Evidencia mínima para conectar los diagramas con líneas reales del repositorio.</p>
+          </div>
+        </div>
+        <div class="code-layout">
+          <div class="code-tabs" id="code-tabs"></div>
+          <pre><code id="code-view"></code></pre>
+        </div>
+      </section>
+    </div>
+  </div>
+</main>
+
+<footer>
+  Documento estático generado para explicar el PoC. No ejecuta RaSTA y no sustituye documentación normativa.
+</footer>
+
+<script>
+const groups = {
+  app: { label:'Aplicación', color:'#0891b2' },
+  api: { label:'API SR', color:'#075985' },
+  handle: { label:'Handle', color:'#be123c' },
+  sub: { label:'Subhandle', color:'#6d28d9' },
+  config: { label:'Config/log', color:'#b45309' },
+  red: { label:'RedMux/UDP', color:'#0f766e' },
+  thread: { label:'Hilos', color:'#15803d' },
+  notif: { label:'Callbacks', color:'#475569' },
+  sci: { label:'SCI-LS', color:'#15803d' },
+  cleanup: { label:'Cleanup', color:'#64748b' }
+};
+
+const overviewNodes = [
+  { id:'ov-main', group:'app', x:40, y:40, title:'Ejemplo remoto', code:'struct rasta_handle h', file:'src/scils_example/c/main.c:68', why:'La aplicación reserva el handle en stack y lo entrega a la API SR.', input:'Rol servidor o cliente.', output:'Handle que será inicializado y usado por SCI-LS.', evidence:'struct rasta_handle h; sr_init_handle(&h, CONFIG_PATH_*)' },
+  { id:'ov-sr-init', group:'api', x:310, y:40, title:'sr_init_handle', code:'sr_init_handle(&h,cfg)', file:'src/rasta/c/rasta_new.c:1581', why:'Fachada pública para inicializar desde fichero .cfg.', input:'Puntero a handle y ruta de cfg.', output:'Handle inicializado y runtime arrancado.', evidence:'Llama rasta_handle_init, redundancy_mux_init_ y sr_start.' },
+  { id:'ov-rh-init', group:'handle', x:580, y:40, title:'rasta_handle_init', code:'cargar y cablear', file:'src/rasta/c/rastahandle.c:385', why:'Construye el estado interno del handle.', input:'config_file_path.', output:'Config, logger, callbacks NULL, lista, hashing y subhandles.', evidence:'h->config = config_load(config_file_path).' },
+  { id:'ov-config', group:'config', x:850, y:20, title:'Config parser', code:'config_load/config_get', file:'src/rasta/c/config.c:770', why:'Convierte el fichero .cfg en valores estructurados.', input:'rasta_server.cfg o rasta_client1.cfg.', output:'h->config.values.*.', evidence:'RastaConfigInfoSending, Redundancy y General.' },
+  { id:'ov-logger', group:'config', x:1120, y:20, title:'Logger', code:'logger_init', file:'src/rasta/c/rastahandle.c:389', why:'Da trazabilidad a SR y RedMux.', input:'LOGGER_TYPE, LOGGER_MAX_LEVEL, LOGGER_FILE.', output:'h->logger y h->redlogger.', evidence:'h->redlogger = h->logger.' },
+  { id:'ov-notif-null', group:'notif', x:850, y:140, title:'Callbacks parciales', code:'h->notifications', file:'src/rasta/c/rastahandle.c:420', why:'El constructor limpia varios callbacks antes de que la aplicación registre los suyos.', input:'Handle recién cargado.', output:'on_receive, on_connection_state_change, diagnostic, DiscReq y redundancia quedan a NULL.', evidence:'No se ve limpieza explícita de on_handshake_complete ni on_heartbeat_timeout.' },
+  { id:'ov-list', group:'handle', x:580, y:180, title:'Lista conexiones', code:'rastalist_create(2)', file:'src/rasta/c/rastahandle.c:432', why:'Contenedor de conexiones activas por peer.', input:'Capacidad inicial 2.', output:'h->connections.', evidence:'Después sr_connect añade conexiones.' },
+  { id:'ov-hash', group:'handle', x:850, y:260, title:'Hashing SR', code:'h->hashing_context', file:'src/rasta/c/rastahandle.c:435', why:'Contexto compartido para checksums SR.', input:'RASTA_SR_CHECKSUM_* y MD4/key.', output:'Puntero usado por subhandles y factories RaSTA.', evidence:'subhandles reciben &h->hashing_context.' },
+  { id:'ov-subhandles', group:'sub', x:310, y:250, title:'Subhandles', code:'receive/send/heartbeat', file:'src/rasta/c/rastahandle.c:459', why:'Divide el runtime en contextos para hilos especializados.', input:'Config, logger, mux, conexiones, flags y hashing.', output:'receive_handle, send_handle, heartbeat_handle.', evidence:'rmalloc de los tres subhandles.' },
+  { id:'ov-recv', group:'sub', x:580, y:340, title:'Receive handle', code:'rasta_receive_handle', file:'src/rasta/headers/rastahandle.h:192', why:'Contexto para leer PDUs y disparar callbacks.', input:'mux, conexiones, accepted_version, hashing.', output:'recv_thread y handlers de recepción.', evidence:'receive_handle->mux = &h->mux.' },
+  { id:'ov-send', group:'sub', x:850, y:390, title:'Send handle', code:'rasta_sending_handle', file:'src/rasta/headers/rastahandle.h:130', why:'Contexto para consumir fifo_send y emitir DATA.', input:'conexiones, mux, hashing.', output:'send_thread.', evidence:'send_handle->connections = &h->connections.' },
+  { id:'ov-hb', group:'sub', x:1120, y:390, title:'Heartbeat handle', code:'rasta_heartbeat_handle', file:'src/rasta/headers/rastahandle.h:161', why:'Contexto para heartbeat y timeouts.', input:'t_h/t_i, conexiones y mux.', output:'hb_thread.', evidence:'heartbeat_handle->running = &h->hb_running.' },
+  { id:'ov-redmux', group:'red', x:310, y:450, title:'Redundancy mux', code:'redundancy_mux_init_', file:'src/rasta/c/rasta_red_multiplexer.c:503', why:'Crea transporte UDP redundante a partir de config.', input:'h->redlogger y h->config.values.', output:'h->mux.', evidence:'handle->mux = redundancy_mux_init_(...)' },
+  { id:'ov-start', group:'api', x:580, y:520, title:'sr_start', code:'abrir mux + hilos', file:'src/rasta/c/rasta_new.c:1537', why:'Activa el runtime del handle.', input:'handle inicializado.', output:'mux abierto y tres hilos SR.', evidence:'redundancy_mux_open; sr_start_receiving/heartbeats/sending.' },
+  { id:'ov-threads', group:'thread', x:850, y:540, title:'Threads SR', code:'receive/heartbeat/send', file:'src/rasta/c/rasta_new.c:1481', why:'Ejecutan la actividad del protocolo en segundo plano.', input:'subhandles.', output:'recv_thread, hb_thread, send_thread.', evidence:'pthread_create en cada start.' },
+  { id:'ov-scils', group:'sci', x:40, y:250, title:'SCI-LS guarda handle', code:'scils->rasta_handle', file:'src/sci/c/scils.c:38', why:'SCI-LS usa el handle para enviar y recibir bytes de aplicación.', input:'scils_init(&h, SCI_NAME_*).', output:'Puente SCI-LS -> RaSTA.', evidence:'scils->rasta_handle = handle.' },
+  { id:'ov-connect', group:'api', x:40, y:500, title:'sr_connect', code:'cliente -> servidor', file:'src/rasta/c/rasta_new.c:1612', why:'Añade canal remoto, crea conexión y envía ConReq.', input:'ID remoto y canales IP:puerto.', output:'ConnectionRequest por RedMux.', evidence:'redundancy_mux_add_channel; createConnectionRequest.' },
+  { id:'ov-fire', group:'notif', x:1120, y:560, title:'fire_on_*', code:'notificaciones async', file:'src/rasta/c/rastahandle.c:51', why:'Entrega eventos de RaSTA a la aplicación en hilos separados.', input:'rasta_notification_result.', output:'on_receive, on_handshake_complete, etc.', evidence:'pthread_create(... on_receive_call ...).' },
+  { id:'ov-cleanup', group:'cleanup', x:580, y:680, title:'sr_cleanup', code:'liberar runtime', file:'src/rasta/c/rasta_new.c:1748', why:'Para hilos, cierra mux y libera estructuras creadas por el handle.', input:'handle activo.', output:'Recursos cancelados/liberados.', evidence:'pthread_cancel, redundancy_mux_close, config_free, rfree subhandles.' }
+];
+
+const overviewEdges = [
+  ['ov-main','ov-sr-init'], ['ov-sr-init','ov-rh-init'], ['ov-rh-init','ov-config'], ['ov-rh-init','ov-logger'],
+  ['ov-rh-init','ov-notif-null'], ['ov-rh-init','ov-list'], ['ov-rh-init','ov-hash'], ['ov-rh-init','ov-subhandles'],
+  ['ov-subhandles','ov-recv'], ['ov-subhandles','ov-send'], ['ov-subhandles','ov-hb'],
+  ['ov-sr-init','ov-redmux'], ['ov-sr-init','ov-start'], ['ov-start','ov-threads'], ['ov-redmux','ov-recv'], ['ov-redmux','ov-send'], ['ov-redmux','ov-hb'],
+  ['ov-main','ov-scils'], ['ov-scils','ov-connect'], ['ov-connect','ov-redmux'], ['ov-threads','ov-fire'], ['ov-notif-null','ov-fire'],
+  ['ov-main','ov-cleanup'], ['ov-cleanup','ov-threads'], ['ov-cleanup','ov-redmux']
+];
+
+const structNodes = [
+  { id:'st-handle', group:'handle', x:690, y:40, title:'struct rasta_handle', code:'runtime central', file:'rastahandle.h:225', why:'Contenedor principal de estado RaSTA.', input:'Creado por la aplicación.', output:'Agrupa subhandles, config, mux, conexiones, logger, callbacks y hashing.', evidence:'Definido en rastahandle.h.' },
+  { id:'st-recv', group:'sub', x:40, y:170, title:'receive_handle*', code:'rasta_receive_handle', file:'rastahandle.h:229', why:'Puntero al contexto de recepción.', input:'Asignado con rmalloc.', output:'Usado por sr_start_receiving.', evidence:'h->receive_handle = rmalloc(...).' },
+  { id:'st-send', group:'sub', x:300, y:170, title:'send_handle*', code:'rasta_sending_handle', file:'rastahandle.h:235', why:'Puntero al contexto de envío.', input:'Asignado con rmalloc.', output:'Usado por sr_start_sending.', evidence:'h->send_handle = rmalloc(...).' },
+  { id:'st-hb', group:'sub', x:560, y:170, title:'heartbeat_handle*', code:'rasta_heartbeat_handle', file:'rastahandle.h:241', why:'Puntero al contexto de heartbeat.', input:'Asignado con rmalloc.', output:'Usado por sr_start_heartbeats.', evidence:'h->heartbeat_handle = rmalloc(...).' },
+  { id:'st-notifs', group:'notif', x:820, y:170, title:'notifications', code:'rasta_notification_ptr', file:'rastahandle.h:247', why:'Tabla de callbacks de aplicación.', input:'Aplicación asigna punteros.', output:'fire_on_* los invoca si no son NULL.', evidence:'h.notifications.on_receive = onReceive.' },
+  { id:'st-log', group:'config', x:1080, y:170, title:'logger/redlogger', code:'logger_t*', file:'rastahandle.h:259', why:'Logging compartido entre SR y redundancia.', input:'LOGGER_* del cfg.', output:'logger_log en módulos SR/RedMux.', evidence:'h->redlogger = h->logger.' },
+  { id:'st-config', group:'config', x:1340, y:170, title:'config', code:'RastaConfig', file:'rastahandle.h:266', why:'Valores cargados del .cfg.', input:'config_load.', output:'Config para subhandles y mux.', evidence:'h->config.values.sending/general/redundancy.' },
+  { id:'st-mux', group:'red', x:40, y:330, title:'mux', code:'redundancy_mux', file:'rastahandle.h:278', why:'Frontera con redundancia y UDP.', input:'redundancy_mux_init_.', output:'Enviar/recibir RastaPacket.', evidence:'h->mux se pasa por puntero a subhandles.' },
+  { id:'st-connections', group:'handle', x:300, y:330, title:'connections', code:'RastaList', file:'rastahandle.h:283', why:'Lista de conexiones activas.', input:'rastalist_create y sr_connect.', output:'Búsqueda por remote_id.', evidence:'rastalist_getConnectionByRemote().' },
+  { id:'st-hash', group:'handle', x:560, y:330, title:'hashing_context', code:'rasta_hashing_context_t', file:'rastahandle.h:288', why:'Parámetros checksum/hash SR.', input:'Config checksum y MD4/key.', output:'Compartido por serialización y parseo RaSTA.', evidence:'Subhandles apuntan a &h->hashing_context.' },
+  { id:'st-running', group:'thread', x:820, y:330, title:'running flags', code:'recv/send/hb_running', file:'rastahandle.h:230', why:'Controlan si los hilos deben ejecutarse.', input:'Inicializados a 0.', output:'Se ponen a 1 en start y 0 en cleanup.', evidence:'*handle->running = 1.' },
+  { id:'st-lock', group:'notif', x:1080, y:330, title:'notification_lock', code:'pthread_mutex_t', file:'rastahandle.h:254', why:'Protege el contador de notificaciones al disparar callbacks.', input:'pthread_mutex_init.', output:'Mutex usado por fire_on_*.', evidence:'pthread_mutex_lock(&result.handle->notification_lock).' },
+  { id:'st-accepted', group:'config', x:1340, y:330, title:'accepted_version', code:'DictionaryArray', file:'rastahandle.h:198', why:'Lista de versiones RaSTA aceptadas en handshake.', input:'RASTA_ACCEPTED_VERSIONS.', output:'receive_handle->accepted_version.', evidence:'allocate_DictionaryArray(...).' },
+  { id:'st-recv-fields', group:'sub', x:40, y:500, title:'Campos receive', code:'config/info/mux/connections', file:'rastahandle.c:463', why:'Dependencias concretas del hilo receive.', input:'Datos del handle central.', output:'receive_thread puede validar, parsear y despachar.', evidence:'receive_handle->connections = &h->connections.' },
+  { id:'st-send-fields', group:'sub', x:300, y:500, title:'Campos send', code:'fifo_send -> RedMux', file:'rastahandle.c:473', why:'Dependencias concretas del hilo send.', input:'Conexiones y mux.', output:'DATA empaquetado y enviado.', evidence:'send_handle->mux = &h->mux.' },
+  { id:'st-hb-fields', group:'sub', x:560, y:500, title:'Campos heartbeat', code:'timers + mux', file:'rastahandle.c:483', why:'Dependencias temporales para heartbeat y T_i.', input:'Config sending/general.', output:'Heartbeat y timeout callbacks.', evidence:'heartbeat_handle->config = h->config.values.sending.' },
+  { id:'st-result', group:'notif', x:820, y:500, title:'notification_result', code:'connection copy + handle*', file:'rastahandle.h:110', why:'Objeto que se entrega a callbacks.', input:'handle y connection.', output:'Callback puede recuperar handle y snapshot de conexión.', evidence:'sr_create_notification_result copia connection.' },
+  { id:'st-scils', group:'sci', x:1080, y:500, title:'SCI-LS referencia', code:'scils->rasta_handle', file:'src/sci/c/scils.c:41', why:'SCI-LS usa el handle como transporte.', input:'scils_init(&h,...).', output:'sr_send y sr_get_received_data.', evidence:'scils->rasta_handle = handle.' },
+  { id:'st-clean', group:'cleanup', x:1340, y:500, title:'Recursos a liberar', code:'sr_cleanup', file:'rasta_new.c:1748', why:'Cierra lo creado por init/start/connect.', input:'Handle activo.', output:'Threads cancelados, mux/config/listas/subhandles liberados.', evidence:'rfree(h->receive_handle), rastalist_free.' }
+];
+
+const structEdges = [
+  ['st-handle','st-recv'], ['st-handle','st-send'], ['st-handle','st-hb'], ['st-handle','st-notifs'], ['st-handle','st-log'], ['st-handle','st-config'],
+  ['st-handle','st-mux'], ['st-handle','st-connections'], ['st-handle','st-hash'], ['st-handle','st-running'], ['st-handle','st-lock'], ['st-handle','st-accepted'],
+  ['st-recv','st-recv-fields'], ['st-send','st-send-fields'], ['st-hb','st-hb-fields'], ['st-notifs','st-result'], ['st-handle','st-scils'], ['st-handle','st-clean'],
+  ['st-recv-fields','st-mux'], ['st-send-fields','st-mux'], ['st-hb-fields','st-mux'], ['st-recv-fields','st-connections'], ['st-send-fields','st-connections'], ['st-hash','st-recv-fields'], ['st-hash','st-send-fields'], ['st-hash','st-hb-fields']
+];
+
+const functions = [
+  { id:'fn-result', group:'notif', name:'sr_create_notification_result', file:'src/rasta/c/rastahandle.c:18', sig:'struct rasta_notification_result sr_create_notification_result(struct rasta_handle *handle, struct rasta_connection *connection)', params:[['handle','Puntero al handle que originará el callback.'],['connection','Conexión que se copia como snapshot dentro del resultado.']], does:'Construye el contenedor entregado a callbacks.', deps:'struct rasta_notification_result, struct rasta_connection.', risk:'Copia la conexión; no es una referencia viva a todos los cambios posteriores.' },
+  { id:'fn-fire-state', group:'notif', name:'fire_on_connection_state_change', file:'src/rasta/c/rastahandle.c:51', sig:'void fire_on_connection_state_change(struct rasta_notification_result result)', params:[['result','Resultado con handle y conexión copiada.']], does:'Si el callback existe, incrementa running_notifications y lo invoca en un hilo nuevo.', deps:'notification_lock, logger, pthread_create, on_constatechange_call.', risk:'El contador se decrementa desde el hilo callback; hay concurrencia con la aplicación.' },
+  { id:'fn-fire-recv', group:'notif', name:'fire_on_receive', file:'src/rasta/c/rastahandle.c:95', sig:'void fire_on_receive(struct rasta_notification_result result)', params:[['result','Resultado de recepción para aplicación.']], does:'Dispara on_receive en un hilo nuevo cuando hay datos de aplicación disponibles.', deps:'on_receive_call, notification_lock, running_notifications.', risk:'El callback de la aplicación suele llamar sr_get_received_data(); revisar orden y vida útil.' },
+  { id:'fn-fire-disc', group:'notif', name:'fire_on_discrequest_state_change', file:'src/rasta/c/rastahandle.c:137', sig:'void fire_on_discrequest_state_change(struct rasta_notification_result result, struct RastaDisconnectionData data)', params:[['result','Resultado base.'],['data','Reason/details de DiscReq.']], does:'Empaqueta motivo y detalle de desconexión y llama al callback correspondiente.', deps:'rasta_disconnect_notification_result, pthread_create.', risk:'No se ejecuta si on_disconnection_request_received es NULL.' },
+  { id:'fn-fire-diag', group:'notif', name:'fire_on_diagnostic_notification', file:'src/rasta/c/rastahandle.c:192', sig:'void fire_on_diagnostic_notification(struct rasta_notification_result result)', params:[['result','Resultado con conexión y diagnóstico acumulado.']], does:'Dispara diagnóstico si hay callback y si received_diagnostic_message_count > 0.', deps:'on_diagnostic_call, notification_lock.', risk:'No emite nada si no hay mensajes de diagnóstico acumulados.' },
+  { id:'fn-fire-hs', group:'notif', name:'fire_on_handshake_complete', file:'src/rasta/c/rastahandle.c:237', sig:'void fire_on_handshake_complete(struct rasta_notification_result result)', params:[['result','Resultado asociado a conexión UP.']], does:'Notifica a la aplicación que el handshake terminó.', deps:'on_handshake_complete_call, pthread_create.', risk:'rasta_handle_init no pone este callback a NULL de forma explícita; si el handle vive en stack, conviene inicializarlo antes de arrancar hilos.' },
+  { id:'fn-fire-hb', group:'notif', name:'fire_on_hearbeat_timeout', file:'src/rasta/c/rastahandle.c:276', sig:'void fire_on_hearbeat_timeout(struct rasta_notification_result result)', params:[['result','Resultado de la conexión con timeout.']], does:'Notifica expiración de T_i si hay callback registrado.', deps:'on_heartbeat_timeout_call, pthread_create.', risk:'El nombre contiene typo en código: hearbeat; además on_heartbeat_timeout no queda limpiado explícitamente en el init actual.' },
+  { id:'fn-manual-init', group:'handle', name:'rasta_handle_manually_init', file:'src/rasta/c/rastahandle.c:302', sig:'void rasta_handle_manually_init(struct rasta_handle *h, struct RastaConfigInfo configuration, struct DictionaryArray accepted_versions, struct logger_t *logger)', params:[['h','Handle a inicializar.'],['configuration','Valores ya preparados sin parsear fichero.'],['accepted_versions','Versiones aceptadas ya construidas.'],['logger','Logger externo ya inicializado.']], does:'Inicializa el handle con configuración programática.', deps:'rastalist_create, rasta_md4_set_key, rmalloc subhandles.', risk:'No carga cfg ni crea logger; el llamador debe suministrarlos correctamente.' },
+  { id:'fn-file-init', group:'handle', name:'rasta_handle_init', file:'src/rasta/c/rastahandle.c:385', sig:'void rasta_handle_init(struct rasta_handle *h, const char* config_file_path)', params:[['h','Handle a inicializar.'],['config_file_path','Ruta al .cfg.']], does:'Carga cfg, logger, callbacks, conexiones, hashing y subhandles.', deps:'config_load, config_get, logger_init, rastalist_create, rmalloc.', risk:'Sale con exit(1) si LOGGER_TYPE o LOGGER_MAX_LEVEL no son números válidos.' },
+  { id:'fn-sr-init', group:'api', name:'sr_init_handle', file:'src/rasta/c/rasta_new.c:1581', sig:'void sr_init_handle(struct rasta_handle* handle, const char* config_file_path)', params:[['handle','Handle de aplicación.'],['config_file_path','Ruta cfg.']], does:'Completa la inicialización pública: handle, RedMux, hashing MD4 y arranque.', deps:'rasta_handle_init, redundancy_mux_init_, rasta_md4_set_key, sr_start.', risk:'Después de esta llamada ya hay hilos vivos; los callbacks pueden registrarse justo después en el ejemplo.' },
+  { id:'fn-sr-start', group:'thread', name:'sr_start', file:'src/rasta/c/rasta_new.c:1537', sig:'void sr_start(struct rasta_handle *handle)', params:[['handle','Handle ya inicializado.']], does:'Abre RedMux y arranca receive, heartbeat y send.', deps:'redundancy_mux_open, sr_start_receiving, sr_start_heartbeats, sr_start_sending.', risk:'Hace runtime activo; si faltan campos en subhandles, fallará en hilos.' },
+  { id:'fn-start-recv', group:'thread', name:'sr_start_receiving', file:'src/rasta/c/rasta_new.c:1481', sig:'void sr_start_receiving(struct rasta_receive_handle *handle)', params:[['handle','Subhandle de recepción.']], does:'Crea recv_thread si no está corriendo.', deps:'receive_thread, pthread_create, running flag.', risk:'No hace nada si *running ya era 1.' },
+  { id:'fn-start-hb', group:'thread', name:'sr_start_heartbeats', file:'src/rasta/c/rasta_new.c:1501', sig:'void sr_start_heartbeats(struct rasta_heartbeat_handle *handle)', params:[['handle','Subhandle de heartbeat.']], does:'Crea hb_thread si no está corriendo.', deps:'heartbeat_thread, pthread_create.', risk:'Depende de timers y conexiones compartidas.' },
+  { id:'fn-start-send', group:'thread', name:'sr_start_sending', file:'src/rasta/c/rasta_new.c:1516', sig:'void sr_start_sending(struct rasta_sending_handle *handle)', params:[['handle','Subhandle de envío.']], does:'Crea send_thread si no está corriendo.', deps:'send_thread, pthread_create.', risk:'Consume fifo_send de conexiones cuando hay datos.' },
+  { id:'fn-connect', group:'api', name:'sr_connect', file:'src/rasta/c/rasta_new.c:1612', sig:'void sr_connect(struct rasta_handle *handle, unsigned long id, struct RastaIPData *channels)', params:[['handle','Handle cliente.'],['id','ID RaSTA remoto.'],['channels','Array de canales IP:puerto.']], does:'Añade canal redundante, crea conexión cliente, manda ConReq y la añade a la lista.', deps:'redundancy_mux_add_channel, sr_init_connection, createConnectionRequest, redundancy_mux_send, rastalist_addConnection.', risk:'Si ya existe conexión con ese remote_id retorna sin error explícito.' },
+  { id:'fn-send', group:'api', name:'sr_send', file:'src/rasta/c/rasta_new.c:1664', sig:'void sr_send(struct rasta_handle *h, unsigned long remote_id, struct RastaMessageData app_messages)', params:[['h','Handle activo.'],['remote_id','Peer RaSTA destino.'],['app_messages','Mensajes de aplicación a encolar.']], does:'Si la conexión está UP, copia bytes a fifo_send.', deps:'rastalist_getConnectionByRemote, connection->lock, fifo_push.', risk:'Si la conexión no está UP puede cerrar/desconectar por service not allowed.' },
+  { id:'fn-retrieve', group:'api', name:'sr_get_received_data', file:'src/rasta/c/rasta_new.c:1718', sig:'rastaApplicationMessage sr_get_received_data(struct rasta_handle *h, struct rasta_connection * connection)', params:[['h','Handle para logging.'],['connection','Conexión con fifo_app_msg.']], does:'Extrae un mensaje de aplicación recibido.', deps:'fifo_pop(connection->fifo_app_msg), logger_log.', risk:'Asume que fifo_pop devuelve elemento válido.' },
+  { id:'fn-disconnect', group:'api', name:'sr_disconnect', file:'src/rasta/c/rasta_new.c:1738', sig:'void sr_disconnect(struct rasta_handle *h, unsigned long remote_id)', params:[['h','Handle activo.'],['remote_id','Peer a desconectar.']], does:'Busca conexión y llama sr_close_connection con motivo USERREQUEST.', deps:'rastalist_getConnectionByRemote, sr_close_connection.', risk:'Retorna si no encuentra conexión.' },
+  { id:'fn-cleanup', group:'cleanup', name:'sr_cleanup', file:'src/rasta/c/rasta_new.c:1748', sig:'void sr_cleanup(struct rasta_handle *h)', params:[['h','Handle activo.']], does:'Para flags, cancela hilos, libera FIFOs/conexiones/config/mux/subhandles/logger.', deps:'pthread_cancel, redundancy_mux_close, config_free, free_DictionaryArray, rastalist_free, logger_destroy.', risk:'Debe llamarse cuando la aplicación ya no va a usar callbacks ni SCI-LS.' }
+];
+
+const flowGuide = [
+  ['La aplicación crea el handle','En el ejemplo remoto, main declara struct rasta_handle h. En ese momento no hay mux, hilos ni configuración cargada.'],
+  ['sr_init_handle inicia desde fichero','La API pública llama rasta_handle_init(config_file_path), luego crea RedMux, fuerza hashing MD4 en rasta_new.c y llama sr_start.'],
+  ['rasta_handle_init carga configuración','config_load parsea el .cfg remoto. Después config_get extrae logger y versiones aceptadas.'],
+  ['Se prepara logging','logger_init crea h->logger y h->redlogger apunta al mismo logger. RedMux hereda este logger.'],
+  ['Callbacks parcialmente limpiados','El init pone a NULL varios callbacks, pero no se observa limpieza explícita de on_handshake_complete ni on_heartbeat_timeout. La aplicación los asigna después.'],
+  ['Se crean conexiones y hashing','rastalist_create prepara h->connections y hashing_context queda listo para checksum/hash SR.'],
+  ['Se crean subhandles','receive_handle, send_handle y heartbeat_handle reciben punteros a h->mux, h->connections, h->hashing_context, logger y flags de ejecución.'],
+  ['RedMux se inicializa','redundancy_mux_init_ usa config.redundancy.connections para preparar transporte UDP y canales.'],
+  ['sr_start activa runtime','Abre RedMux y arranca tres hilos: receive, heartbeat y send. Desde aquí hay concurrencia real.'],
+  ['SCI-LS guarda el handle','scils_init no inicializa RaSTA; solo guarda rasta_handle para enviar/recibir a través de SR.'],
+  ['Cliente llama sr_connect','sr_connect añade canal a RedMux, inicializa rasta_connection, crea ConnectionRequest y la envía.'],
+  ['Eventos vuelven por fire_on_*','Cuando recepción/heartbeat detectan cambios, fire_on_* empaqueta rasta_notification_result y llama callbacks en hilos nuevos.'],
+  ['sr_send usa la lista de conexiones','SCI-LS acaba llamando sr_send; si la conexión está UP, los bytes de aplicación entran en fifo_send.'],
+  ['sr_cleanup cierra el runtime','Cancela hilos, cierra mux, libera config, accepted_version, subhandles, conexiones y logger.']
+];
+
+const responsibilities = [
+  ['rasta_handle','Contenedor de runtime: no es la lógica completa del protocolo, sino el objeto que conecta configuración, transporte, hilos, conexiones, hashing y callbacks.'],
+  ['rasta_handle_init','Constructor desde fichero: parsea, crea logger, prepara estado y subhandles. No abre el mux ni arranca hilos por sí solo.'],
+  ['sr_init_handle','Fachada pública: completa lo que falta tras rasta_handle_init y deja el runtime activo.'],
+  ['Subhandles','Evitan pasar todo el handle a cada hilo, pero mantienen punteros a los recursos compartidos principales.'],
+  ['Notifications','Frontera hacia aplicación: callbacks opcionales, asíncronos, protegidos con notification_lock.'],
+  ['RedMux','Frontera con redundancia/UDP. El handle lo posee como campo, pero la lógica de transporte vive en rasta_red_multiplexer.c.'],
+  ['SCI-LS','Capa de aplicación que guarda un puntero al handle para usar RaSTA como transporte. No forma parte de rastahandle.c.'],
+  ['Cleanup','Responsabilidad crítica: lo que init/start/connect crea debe cerrarse aquí para no dejar hilos, FIFOs o config vivos.']
+];
+
+const snippets = [
+  { id:'sn-struct', label:'struct rasta_handle', code:String.raw`struct rasta_handle {
+    struct rasta_receive_handle *receive_handle;
+    int recv_running;
+    struct rasta_sending_handle *send_handle;
+    int send_running;
+    struct rasta_heartbeat_handle *heartbeat_handle;
+    int hb_running;
+    struct rasta_notification_ptr notifications;
+    int running_notifications;
+    pthread_mutex_t notification_lock;
+    struct logger_t* logger;
+    struct logger_t* redlogger;
+    struct RastaConfig config;
+    struct redundancy_mux mux;
+    struct RastaList connections;
+    rasta_hashing_context_t hashing_context;
+};` },
+  { id:'sn-init', label:'rasta_handle_init', code:String.raw`void rasta_handle_init(struct rasta_handle *h, const char* config_file_path) {
+    h->config = config_load(config_file_path);
+
+    struct DictionaryEntry logger_ty = config_get(&h->config, RASTA_CONFIG_KEY_LOGGER_TYPE);
+    struct DictionaryEntry logger_maxlvl = config_get(&h->config, RASTA_CONFIG_KEY_LOGGER_MAX_LEVEL);
+    struct DictionaryEntry logger_file = config_get(&h->config, RASTA_CONFIG_KEY_LOGGER_FILE);
+
+    h->logger = logger_init((log_level) logger_maxlvl.value.number, (logger_type) logger_ty.value.number);
+    h->redlogger = h->logger;
+
+    h->notifications.on_receive = NULL;
+    h->notifications.on_connection_state_change = NULL;
+    h->notifications.on_diagnostic_notification = NULL;
+    h->notifications.on_disconnection_request_received = NULL;
+    h->notifications.on_redundancy_diagnostic_notification = NULL;
+    /* En el código actual no aparece limpieza explícita de
+       on_handshake_complete ni on_heartbeat_timeout. */
+    h->running_notifications = 0;
+    pthread_mutex_init(&h->notification_lock, 0);
+
+    h->connections = rastalist_create(2);
+    h->hashing_context.hash_length = h->config.values.sending.md4_type;
+    h->hashing_context.algorithm = h->config.values.sending.sr_hash_algorithm;
+
+    h->receive_handle = rmalloc(sizeof(struct rasta_receive_handle));
+    h->heartbeat_handle = rmalloc(sizeof(struct rasta_heartbeat_handle));
+    h->send_handle = rmalloc(sizeof(struct rasta_sending_handle));
+}` },
+  { id:'sn-subhandles', label:'Cableado subhandles', code:String.raw`h->receive_handle->config = h->config.values.sending;
+h->receive_handle->info = h->config.values.general;
+h->receive_handle->handle = h;
+h->receive_handle->connections = &h->connections;
+h->receive_handle->running = &h->recv_running;
+h->receive_handle->logger = h->logger;
+h->receive_handle->mux = &h->mux;
+h->receive_handle->hashing_context = &h->hashing_context;
+
+h->send_handle->connections = &h->connections;
+h->send_handle->mux = &h->mux;
+h->send_handle->hashing_context = &h->hashing_context;
+
+h->heartbeat_handle->connections = &h->connections;
+h->heartbeat_handle->mux = &h->mux;
+h->heartbeat_handle->hashing_context = &h->hashing_context;` },
+  { id:'sn-sr-init', label:'sr_init_handle', code:String.raw`void sr_init_handle(struct rasta_handle* handle, const char* config_file_path) {
+    rasta_handle_init(handle, config_file_path);
+
+    handle->mux = redundancy_mux_init_(handle->redlogger, handle->config.values);
+    handle->mux.notifications.on_diagnostics_available =
+        handle->notifications.on_redundancy_diagnostic_notification;
+
+    handle->hashing_context.algorithm = RASTA_ALGO_MD4;
+    handle->hashing_context.hash_length = handle->config.values.sending.md4_type;
+    rasta_md4_set_key(&handle->hashing_context,
+        handle->config.values.sending.md4_a,
+        handle->config.values.sending.md4_b,
+        handle->config.values.sending.md4_c,
+        handle->config.values.sending.md4_d);
+
+    sr_start(handle);
+}` },
+  { id:'sn-fire', label:'fire_on_receive', code:String.raw`void fire_on_receive(struct rasta_notification_result result){
+    pthread_mutex_lock(&result.handle->notification_lock);
+    if (result.handle->notifications.on_receive == NULL){
+        pthread_mutex_unlock(&result.handle->notification_lock);
+        return;
+    }
+
+    result.handle->running_notifications = result.handle->running_notifications + 1;
+
+    struct rasta_notification_result* container =
+        rmalloc(sizeof(struct rasta_notification_result));
+    *container = result;
+
+    pthread_create(&caller_thread, NULL, on_receive_call, container);
+    pthread_mutex_unlock(&result.handle->notification_lock);
+}` },
+  { id:'sn-clean', label:'sr_cleanup', code:String.raw`void sr_cleanup(struct rasta_handle *h) {
+    h->hb_running = 0;
+    h->recv_running = 0;
+    h->send_running = 0;
+
+    pthread_cancel(h->receive_handle->recv_thread);
+    pthread_cancel(h->send_handle->send_thread);
+    pthread_cancel(h->heartbeat_handle->hb_thread);
+
+    redundancy_mux_close(&h->mux);
+    config_free(&h->config);
+    free_DictionaryArray(&h->receive_handle->accepted_version);
+
+    rfree(h->receive_handle);
+    rfree(h->send_handle);
+    rfree(h->heartbeat_handle);
+    rastalist_free(&h->connections);
+    logger_destroy(h->logger);
+}` }
+];
+
+let activeFilter = 'all';
+let activeOverview = 'ov-rh-init';
+let activeStruct = 'st-handle';
+let activeFunction = 'fn-file-init';
+let activeSnippet = 'sn-struct';
+const overviewIndex = new Map(overviewNodes.map((n) => [n.id, n]));
+const structIndex = new Map(structNodes.map((n) => [n.id, n]));
+const functionIndex = new Map(functions.map((n) => [n.id, n]));
+
+function esc(value) {
+  return String(value).replace(/[&<>"']/g, (ch) => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[ch]));
+}
+
+function graphFill(group) {
+  return document.documentElement.dataset.theme === 'dark'
+    ? 'color-mix(in srgb, ' + groups[group].color + ' 18%, #111827)'
+    : 'color-mix(in srgb, ' + groups[group].color + ' 12%, #ffffff)';
+}
+
+function related(edges, id) {
+  const set = new Set([id]);
+  edges.forEach(([from, to]) => {
+    if (from === id) set.add(to);
+    if (to === id) set.add(from);
+  });
+  return set;
+}
+
+function searchText(item) {
+  return [item.title, item.code, item.file, item.why, item.input, item.output, item.evidence, groups[item.group]?.label].join(' ').toLowerCase();
+}
+
+function query() {
+  return document.getElementById('search')?.value.trim().toLowerCase() || '';
+}
+
+function visible(item) {
+  return (activeFilter === 'all' || item.group === activeFilter) && (!query() || searchText(item).includes(query()));
+}
+
+function renderMetrics() {
+  document.getElementById('metrics').innerHTML = [
+    [String(overviewNodes.length + structNodes.length),'nodos diagramados'],
+    [String(functions.length),'funciones trazadas'],
+    ['3','hilos SR'],
+    ['0','evidencia normativa']
+  ].map(([value, label]) => `<div class="metric"><strong>${esc(value)}</strong><span>${esc(label)}</span></div>`).join('');
+}
+
+function renderFilters() {
+  const buttons = [['all','Todo'], ...Object.entries(groups).map(([id, group]) => [id, group.label])];
+  document.getElementById('filters').innerHTML = buttons.map(([id, label]) => `<button type="button" class="${id === activeFilter ? 'is-active' : ''}" data-filter="${esc(id)}">${esc(label)}</button>`).join('');
+  document.querySelectorAll('[data-filter]').forEach((button) => {
+    button.addEventListener('click', () => {
+      activeFilter = button.dataset.filter;
+      renderFilters();
+      renderStats();
+      renderOverviewGraph();
+      renderStructGraph();
+      renderFunctionExplorer();
+    });
+  });
+}
+
+function renderStats() {
+  const ov = overviewNodes.filter(visible).length;
+  const st = structNodes.filter(visible).length;
+  const fn = functions.filter((fn) => activeFilter === 'all' || fn.group === activeFilter).length;
+  document.getElementById('stats').innerHTML = [
+    ['Dependencias visibles', ov],
+    ['Estructuras visibles', st],
+    ['Funciones del filtro', fn],
+    ['Total funciones', functions.length]
+  ].map(([label, value]) => `<div class="stat"><span>${esc(label)}</span><strong>${value}</strong></div>`).join('');
+}
+
+function renderLegend() {
+  document.getElementById('legend').innerHTML = Object.values(groups).map((group) => `<span><i class="dot" style="--dot:${group.color}"></i>${esc(group.label)}</span>`).join('');
+}
+
+function drawGraph(svgId, nodes, edges, activeId, index, onSelect, width, height) {
+  const svg = document.getElementById(svgId);
+  const rel = related(edges, activeId);
+  const visibleIds = new Set(nodes.filter(visible).map((n) => n.id));
+  svg.innerHTML = `<defs><marker id="arrow" markerWidth="10" markerHeight="10" refX="9" refY="3" orient="auto" markerUnits="strokeWidth"><path d="M0,0 L0,6 L9,3 z" fill="currentColor"></path></marker></defs>`;
+  edges.forEach(([from, to]) => {
+    const a = index.get(from);
+    const b = index.get(to);
+    if (!a || !b) return;
+    const line = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+    const startX = a.x + width / 2;
+    const startY = a.y + height / 2;
+    const endX = b.x + 10;
+    const endY = b.y + height / 2;
+    const midX = (startX + endX) / 2;
+    line.setAttribute('d', `M ${startX} ${startY} C ${midX} ${startY}, ${midX} ${endY}, ${endX} ${endY}`);
+    line.setAttribute('class', `edge ${rel.has(from) && rel.has(to) ? 'is-active' : ''} ${visibleIds.has(from) && visibleIds.has(to) ? '' : 'is-dim'}`);
+    svg.appendChild(line);
+  });
+  nodes.forEach((node) => {
+    const isVisible = visibleIds.has(node.id);
+    const isActive = node.id === activeId;
+    const isRelated = rel.has(node.id);
+    const group = groups[node.group];
+    const g = document.createElementNS('http://www.w3.org/2000/svg', 'g');
+    g.setAttribute('class', `node ${isVisible ? '' : 'is-dim'} ${isActive ? 'is-active' : ''} ${isRelated ? 'is-related' : ''}`);
+    g.setAttribute('transform', `translate(${node.x},${node.y})`);
+    g.setAttribute('tabindex', '0');
+    g.setAttribute('role', 'button');
+    g.setAttribute('aria-label', node.title);
+    g.innerHTML = `<rect x="0" y="0" width="${width}" height="${height}" rx="8" fill="${graphFill(node.group)}" stroke="${group.color}"></rect>
+      <text x="12" y="21" font-size="12" fill="${group.color}">${esc(group.label)}</text>
+      <text x="12" y="43" font-size="14">${esc(node.title)}</text>
+      <text x="12" y="61" font-size="10">${esc(node.code)}</text>
+      <text x="12" y="76" font-size="9">${esc(node.file)}</text>`;
+    g.addEventListener('click', () => onSelect(node.id));
+    g.addEventListener('keydown', (event) => {
+      if (event.key === 'Enter' || event.key === ' ') {
+        event.preventDefault();
+        onSelect(node.id);
+      }
+    });
+    svg.appendChild(g);
+  });
+}
+
+function renderNodeFacts(containerId, node) {
+  document.getElementById(containerId).innerHTML = [
+    ['Nodo', `<strong>${esc(node.title)}</strong>`],
+    ['Código', `<code>${esc(node.code)}</code>`],
+    ['Archivo', `<span class="path">${esc(node.file)}</span>`],
+    ['Responsabilidad', esc(node.why)],
+    ['Entrada', esc(node.input)],
+    ['Salida / efecto', esc(node.output)],
+    ['Evidencia', esc(node.evidence)]
+  ].map(([label, value]) => `<div class="fact"><strong>${esc(label)}</strong>${value}</div>`).join('');
+}
+
+function renderNeighbors(containerId, edges, activeId, index, onSelect) {
+  const neighbors = edges.flatMap(([from, to]) => {
+    if (from === activeId) return [{ id:to, dir:'depende / llama a' }];
+    if (to === activeId) return [{ id:from, dir:'lo alimenta' }];
+    return [];
+  });
+  document.getElementById(containerId).innerHTML = neighbors.length
+    ? neighbors.map((item) => {
+      const node = index.get(item.id);
+      return `<button type="button" data-neighbor="${esc(item.id)}"><strong>${esc(item.dir)}</strong><br>${esc(node.title)}<br><code>${esc(node.file)}</code></button>`;
+    }).join('')
+    : '<p>No hay vecinos directos en esta vista.</p>';
+  document.querySelectorAll(`#${containerId} [data-neighbor]`).forEach((button) => {
+    button.addEventListener('click', () => onSelect(button.dataset.neighbor));
+  });
+}
+
+function selectOverview(id) {
+  if (!overviewIndex.has(id)) return;
+  activeOverview = id;
+  renderOverviewGraph();
+  renderOverviewInspector();
+  renderSelectedBrief();
+}
+
+function selectStruct(id) {
+  if (!structIndex.has(id)) return;
+  activeStruct = id;
+  renderStructGraph();
+  renderStructInspector();
+  renderSelectedBrief();
+}
+
+function renderOverviewGraph() {
+  drawGraph('overview-graph', overviewNodes, overviewEdges, activeOverview, overviewIndex, selectOverview, 210, 86);
+}
+
+function renderStructGraph() {
+  drawGraph('struct-graph', structNodes, structEdges, activeStruct, structIndex, selectStruct, 210, 86);
+}
+
+function renderOverviewInspector() {
+  const node = overviewIndex.get(activeOverview);
+  renderNodeFacts('overview-facts', node);
+  renderNeighbors('overview-neighbors', overviewEdges, activeOverview, overviewIndex, selectOverview);
+}
+
+function renderStructInspector() {
+  const node = structIndex.get(activeStruct);
+  renderNodeFacts('struct-facts', node);
+  renderNeighbors('struct-neighbors', structEdges, activeStruct, structIndex, selectStruct);
+}
+
+function renderSelectedBrief() {
+  const ov = overviewIndex.get(activeOverview);
+  const st = structIndex.get(activeStruct);
+  document.getElementById('selected-brief').innerHTML = [
+    ['Dependencias', ov.title],
+    ['Estructura', st.title],
+    ['Función', functionIndex.get(activeFunction).name]
+  ].map(([label, value]) => `<div class="stat"><span>${esc(label)}</span><strong>${esc(value)}</strong></div>`).join('');
+}
+
+function visibleFunction(fn) {
+  const q = query();
+  const blob = [fn.name, fn.file, fn.sig, fn.does, fn.deps, fn.risk, ...(fn.params || []).flat()].join(' ').toLowerCase();
+  return (activeFilter === 'all' || fn.group === activeFilter) && (!q || blob.includes(q));
+}
+
+function renderFunctionExplorer() {
+  const list = functions.filter(visibleFunction);
+  document.getElementById('function-list').innerHTML = list.map((fn) => `<article class="function-card ${fn.id === activeFunction ? 'is-active' : ''}" data-function="${esc(fn.id)}">
+    <h3>${esc(fn.name)}</h3>
+    <p><code>${esc(fn.file)}</code></p>
+    <p>${esc(fn.does)}</p>
+  </article>`).join('');
+  document.querySelectorAll('[data-function]').forEach((card) => {
+    card.addEventListener('click', () => {
+      activeFunction = card.dataset.function;
+      renderFunctionExplorer();
+      renderSelectedBrief();
+    });
+  });
+  renderFunctionDetail();
+}
+
+function renderFunctionDetail() {
+  const fn = functionIndex.get(activeFunction) || functions[0];
+  document.getElementById('function-detail').innerHTML = `<div class="signature"><strong>${esc(fn.name)}</strong><br><code>${esc(fn.sig)}</code><br><span class="path">${esc(fn.file)}</span></div>
+    <div class="param-grid">
+      ${(fn.params || []).map(([name, text]) => `<div class="param"><strong><code>${esc(name)}</code></strong><p>${esc(text)}</p></div>`).join('')}
+    </div>
+    <div class="fact-grid">
+      <div class="fact"><strong>Qué hace</strong>${esc(fn.does)}</div>
+      <div class="fact"><strong>Dependencias</strong>${esc(fn.deps)}</div>
+      <div class="fact"><strong>Riesgo / límite</strong>${esc(fn.risk)}</div>
+      <div class="fact"><strong>Capa</strong>${esc(groups[fn.group].label)}</div>
+    </div>`;
+}
+
+function renderFlowGuide() {
+  document.getElementById('flow-guide').innerHTML = flowGuide.map(([title, text], index) => `<article class="guide-step">
+    <div class="step-index">${index + 1}</div>
+    <div><strong>${esc(title)}</strong><p>${esc(text)}</p></div>
+  </article>`).join('');
+}
+
+function renderResponsibilities() {
+  document.getElementById('responsibility-matrix').innerHTML = responsibilities.map(([title, text]) => `<article class="matrix-card">
+    <h3>${esc(title)}</h3>
+    <p>${esc(text)}</p>
+  </article>`).join('');
+}
+
+function renderSnippets() {
+  document.getElementById('code-tabs').innerHTML = snippets.map((snippet) => `<button class="tab-button ${snippet.id === activeSnippet ? 'is-active' : ''}" type="button" data-snippet="${esc(snippet.id)}">${esc(snippet.label)}</button>`).join('');
+  const snippet = snippets.find((candidate) => candidate.id === activeSnippet) || snippets[0];
+  document.getElementById('code-view').textContent = snippet.code;
+  document.querySelectorAll('[data-snippet]').forEach((button) => {
+    button.addEventListener('click', () => {
+      activeSnippet = button.dataset.snippet;
+      renderSnippets();
+    });
+  });
+}
+
+function initTheme() {
+  const button = document.getElementById('theme-toggle');
+  const update = () => {
+    const dark = document.documentElement.dataset.theme === 'dark';
+    button.textContent = dark ? 'Modo claro' : 'Modo oscuro';
+    button.setAttribute('aria-pressed', String(dark));
+  };
+  button.addEventListener('click', () => {
+    document.documentElement.dataset.theme = document.documentElement.dataset.theme === 'dark' ? 'light' : 'dark';
+    localStorage.setItem('rasta-handle-deep-theme', document.documentElement.dataset.theme);
+    update();
+    renderOverviewGraph();
+    renderStructGraph();
+  });
+  update();
+}
+
+document.getElementById('search').addEventListener('input', () => {
+  renderStats();
+  renderOverviewGraph();
+  renderStructGraph();
+  renderFunctionExplorer();
+});
+document.getElementById('reset-overview').addEventListener('click', () => {
+  activeFilter = 'all';
+  document.getElementById('search').value = '';
+  activeOverview = 'ov-rh-init';
+  renderFilters();
+  renderStats();
+  renderOverviewGraph();
+  renderOverviewInspector();
+});
+document.getElementById('reset-struct').addEventListener('click', () => selectStruct('st-handle'));
+
+renderMetrics();
+renderFilters();
+renderStats();
+renderLegend();
+renderOverviewGraph();
+renderStructGraph();
+renderOverviewInspector();
+renderStructInspector();
+renderFunctionExplorer();
+renderFlowGuide();
+renderResponsibilities();
+renderSnippets();
+renderSelectedBrief();
+initTheme();
+</script>
+</body>
+</html>
