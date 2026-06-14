@@ -4,7 +4,7 @@
 #include <cloud_ixl_types.h>
 
 typedef struct{
-    SectionState section[SIGNAL_COUNT];
+    SectionState section[SECTION_COUNT];
     PointState point[POINT_COUNT];
     SignalAspect signal[SIGNAL_COUNT];
     RouteState route[ROUTE_COUNT];

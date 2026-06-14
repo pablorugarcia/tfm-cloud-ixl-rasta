@@ -2,6 +2,16 @@
 #define CLOUD_IXL_ROUTES_H
 
 #include <cloud_ixl_types.h>
+#include <stddef.h>
+#define MAX_SECTIONS_PER_ROUTE 8
 
+typedef struct {
+    RouteId id;
+    SectionId required_sections[MAX_SECTIONS_PER_ROUTE];
+    size_t required_sections_count;
 
-#endif // CLOUD_IXL_ROUTES_H
+} RouteDefinition;
+
+const RouteDefinition* cloud_ixl_get_route_definition(RouteId route_id);
+
+#endif
