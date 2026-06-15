@@ -9,6 +9,13 @@ static const RouteDefinition route_definitions[] = {
             CV_02,
         },
         .required_sections_count = 2,
+        .required_points = {
+            P_01,
+        },
+        .required_point_states = {
+            LEFT,
+        },
+        .required_points_count = 1,
     },
     {
         .id = RUTA_AC,
@@ -17,6 +24,13 @@ static const RouteDefinition route_definitions[] = {
             CV_03,
         },
         .required_sections_count = 2,
+        .required_points = {
+            P_01,
+        },
+        .required_point_states = {
+            RIGHT,
+        },
+        .required_points_count = 1,
     }
 };
 
