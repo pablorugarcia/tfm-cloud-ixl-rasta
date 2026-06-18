@@ -1,8 +1,11 @@
+#ifndef IXL_TYPES
+#define IXL_TYPES
+
 typedef enum{
-    FREE,
-    OCCUPIED,
-    UNKNOWN,
-    FAILED
+    S_FREE,
+    S_OCCUPIED,
+    S_UNKNOWN,
+    S_FAILED
 } SectionState;
 
 typedef enum{
@@ -45,9 +48,11 @@ typedef enum{
 
 typedef enum{
     FREE,
+    WRONG_POINTS,
     RESERVED,
     OCCUPIED,
     REQUESTED,
+    INVALID,
 } RouteState;
 
 typedef enum{
@@ -55,3 +60,8 @@ typedef enum{
     GO,
 } RouteDecision;
 
+typedef struct {
+    RouteId route_id;
+} RouteRequest;
+
+#endif

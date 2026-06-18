@@ -1,3 +1,4 @@
+#include <stdio.h>
 #include <cloud_ixl_routes.h>
 #include <cloud_ixl_state.h>
 #include <cloud_ixl_types.h>
@@ -18,7 +19,7 @@ void cloud_ixl_state_init(IXL_state *state){
         state->route[i] = FREE;
     }
     for(size_t i = 0; i < SECTION_COUNT; i++){
-        state->section[i] = FREE;
+        state->section[i] = S_FREE;
     }
 }
 
