@@ -1,6 +1,6 @@
 #include <cloud_ixl_routes.h>
 #include <cloud_ixl_types.h>
-
+/*ROUTES TABLE*/
 static const RouteDefinition route_definitions[] = {
     {
         .id = RUTA_AB,
