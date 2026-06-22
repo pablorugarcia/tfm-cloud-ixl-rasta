@@ -42,7 +42,7 @@ void* rmemcpy(void *dest, const void *src, unsigned int n);
 
 
 /**
- * sets tje first n characters in dest to ch
+ * sets the first n characters in dest to ch
  * @param dest
  * @param ch
  * @param n

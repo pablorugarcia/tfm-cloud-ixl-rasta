@@ -43,7 +43,9 @@ typedef enum{
     GREEN,
     RED,
     YELLOW,
-    YELLOW_FLASHING,
+    GREEN_FLASHING,
+    WHITE,
+    BLUE,
 } SignalAspect;
 
 typedef enum{
