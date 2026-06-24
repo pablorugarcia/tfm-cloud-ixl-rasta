@@ -845,7 +845,7 @@ struct RastaConfig config_load(const char filename[256]) {
 }
 
 
-struct DictionaryEntry config_get(struct RastaConfig * cfg, char key[256]) {
+struct DictionaryEntry config_get(struct RastaConfig * cfg, const char *key) {
     return dictionary_get(&cfg->dictionary,key);
 }
 

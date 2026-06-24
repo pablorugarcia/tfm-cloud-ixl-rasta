@@ -102,6 +102,59 @@ install(TARGETS rasta
 # Enable optimization for RaSTA
 target_compile_options(rasta PRIVATE -O3 -Wall -Wextra -Wpedantic -Werror)
 
+add_library(sci_ls_icd STATIC
+        src/sci_ls_icd/c/sci_ls_icd.c
+)
+
+target_include_directories(sci_ls_icd PUBLIC
+        src/sci_ls_icd/headers
+)
+
+target_link_libraries(sci_ls_icd PUBLIC rasta)
+
+target_compile_options(sci_ls_icd PRIVATE
+        -Wall
+        -Wextra
+        -Wpedantic
+        -Werror
+)
+
+add_executable(cloud_ixl
+        src/cloud_ixl/c/main.c
+        src/cloud_ixl/c/cloud_ixl_format.c
+        src/cloud_ixl/c/cloud_ixl_input.c
+        src/cloud_ixl/c/cloud_ixl_logic.c
+        src/cloud_ixl/c/cloud_ixl_output.c
+        src/cloud_ixl/c/cloud_ixl_routes.c
+        src/cloud_ixl/c/cloud_ixl_scils_adapter.c
+        src/cloud_ixl/c/cloud_ixl_state.c
+)
+
+target_include_directories(cloud_ixl PRIVATE
+        src/cloud_ixl/headers
+)
+
+target_link_libraries(cloud_ixl rasta sci_ls_icd)
+
+target_compile_options(cloud_ixl PRIVATE
+        -Wall
+        -Wextra
+        -Wpedantic
+        -Werror
+)
+
+add_executable(oc_simulator
+        src/oc_simulator/c/main.c
+)
+
+target_link_libraries(oc_simulator rasta sci_ls_icd)
+
+target_compile_options(oc_simulator PRIVATE
+        -Wall
+        -Wextra
+        -Wpedantic
+        -Werror
+)
 
 if(BUILD_LOCAL_EXAMPLES)
 	# scip_example on localhost
@@ -152,4 +205,3 @@ if(BUILD_REMOTE_EXAMPLES)
 		add_compile_definitions(EXAMPLE_IP_OVERRIDE)
 	endif(EXAMPLE_IP_OVERRIDE)
 endif(BUILD_REMOTE_EXAMPLES)
-
