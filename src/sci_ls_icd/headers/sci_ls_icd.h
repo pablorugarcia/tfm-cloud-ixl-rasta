@@ -5,6 +5,18 @@
 
 #define SCI_LS_ICD_VERSION_RESPONSE_PAYLOAD_SIZE 3U
 
+#define SCI_LS_ICD_SIGNAL_VECTOR_SIZE 18U
+
+typedef struct {
+    unsigned char bytes[SCI_LS_ICD_SIGNAL_VECTOR_SIZE];
+} sci_ls_icd_signal_vector;
+
+sci_ls_icd_parse_result
+sci_ls_icd_parse_signal_aspect_status(
+    sci_telegram *telegram,
+    sci_ls_icd_signal_vector *vector
+);
+
 typedef struct {
     unsigned char requested_version;
     unsigned char supported_version;
