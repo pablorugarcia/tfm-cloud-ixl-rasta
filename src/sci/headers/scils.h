@@ -263,6 +263,13 @@ void scils_on_rasta_receive(scils_t * ls, rastaApplicationMessage message);
  */
 void scils_register_sci_name(scils_t * ls, char * sci_name, unsigned long rasta_id);
 
+/**
+ * Sends telegram to a specific LS.
+ * @param ls the SCI-LS instance
+ * @param telegram the telegram to sent
+ */
+sci_return_code scils_send_telegram(scils_t * ls, sci_telegram * telegram);
+
 #ifdef __cplusplus
 }
 #endif

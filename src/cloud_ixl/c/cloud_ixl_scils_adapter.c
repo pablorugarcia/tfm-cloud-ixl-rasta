@@ -4,9 +4,12 @@
 #include <cloud_ixl_scils_adapter.h>
 #include <sci_telegram_factory.h>
 #include <scils_telegram_factory.h>
+#include <scils.h>
+#include <rmemory.h>
 
 #include <stddef.h>
 #include <string.h>
+
 bool cloud_ixl_build_signal_vector(SignalAspect aspect, uint8_t vector[CLOUD_IXL_SIGNAL_VECTOR_SIZE]){
     if(vector == NULL){
         return false;
@@ -161,7 +164,6 @@ sci_telegram *cloud_ixl_create_signal_aspect_telegram(char *sender, char *receiv
     }
 
     sci_telegram * telegram = sci_create_base_telegram(SCI_PROTOCOL_LS, sender, receiver, SCILS_MESSAGE_TYPE_SHOW_SIGNAL_ASPECT);
-    cloud_ixl_build_signal_vector(aspect, vector);
     telegram->payload.used_bytes = CLOUD_IXL_SIGNAL_VECTOR_SIZE;
 
     for (size_t i = 0; i < CLOUD_IXL_SIGNAL_VECTOR_SIZE; i++)
@@ -170,5 +172,28 @@ sci_telegram *cloud_ixl_create_signal_aspect_telegram(char *sender, char *receiv
     }
 
     return telegram;
+
+}
+
+CloudIxlScilsSendResult cloud_ixl_scils_send_signal_aspect(scils_t *scils, char *receiver, SignalAspect aspect){
+    
+    if (scils == NULL || receiver == NULL) {
+        return CLOUD_IXL_SCILS_BUILD_ERROR;
+    }
+
+    sci_telegram *telegram = cloud_ixl_create_signal_aspect_telegram(scils->sciName, receiver, aspect);
+
+    if (telegram == NULL) {
+        return CLOUD_IXL_SCILS_BUILD_ERROR;
+    }
+
+    sci_return_code code = scils_send_telegram(scils, telegram);
+
+    rfree(telegram);
+
+    if (code != SUCCESS) {
+        return CLOUD_IXL_SCILS_SEND_ERROR;
+    }
+    return SUCCES_SCILS;
 
 }
