@@ -12,6 +12,10 @@
 #include <sci.h>
 #include <rastautil.h>
 #include <rasta_new.h>
+#include <sci_ls_icd.h>
+#include <sci_telegram_factory.h>
+
+#define PDI_VERSION 0x05U
 
 #define CONFIG_PATH "config/rasta_client1_local.cfg"
 #define OC_RASTA_ID 0x61UL
@@ -42,7 +46,7 @@ void on_rasta_handshake(struct rasta_notification_result *result){
 
     printf("Completed RaSTA handshake with LS_OC\n");
 
-    sci_return_code code = scils_send_version_request(scils, "LS_OC", 0x05);
+    sci_return_code code = scils_send_version_request(scils, "LS_OC", PDI_VERSION);
 
     if (code != SUCCESS) {
         printf("PDI version request couldn't be sent\n");
@@ -53,8 +57,56 @@ void on_rasta_handshake(struct rasta_notification_result *result){
     pdi_state = PDI_WAIT_VERSION_RESPONSE;
 }
 
-void on_rasta_receive(struct rasta_notification_result *result){
-    rastaApplicationMessage message = sr_get_received_data(result->handle, &result->connection);
+static void handle_icd_version_response(
+    scils_t *ls,
+    const sci_ls_icd_version_response *response
+);
+
+void on_rasta_receive(struct rasta_notification_result *result)
+{
+    rastaApplicationMessage message =
+        sr_get_received_data(
+            result->handle,
+            &result->connection
+        );
+
+    sci_telegram *telegram =
+        sci_decode_telegram(message.appMessage);
+
+    if (telegram == NULL) {
+        printf("PDI: received data is not a valid SCI telegram\n");
+        return;
+    }
+
+    if (telegram->protocol_type == SCI_PROTOCOL_LS &&
+        sci_get_message_type(telegram) ==
+            SCI_MESSAGE_TYPE_VERSION_RESPONSE) {
+
+        sci_ls_icd_version_response response;
+
+        sci_ls_icd_parse_result parse_result =
+            sci_ls_icd_parse_version_response(
+                telegram,
+                &response
+            );
+
+        rfree(telegram);
+
+        if (parse_result != SCI_LS_ICD_PARSE_SUCCESS) {
+            printf(
+                "PDI: invalid ICD version response: %d\n",
+                (int)parse_result
+            );
+            pdi_state = PDI_FAILED;
+            return;
+        }
+
+        handle_icd_version_response(scils, &response);
+        return;
+    }
+
+    rfree(telegram);
+
     scils_on_rasta_receive(scils, message);
 }
 
@@ -101,35 +153,31 @@ static void on_timeout(struct rasta_notification_result *result){
     pdi_state = PDI_FAILED;
 }
 
-static void on_version_response(scils_t *ls, char *sender, unsigned char btp_version, sci_version_check_result version_result, unsigned char checksum_len, unsigned char *checksum){
-    sci_return_code send_code;
-
-    (void)sender;
-    (void)checksum_len;
-    (void)checksum;
-
-    printf("PDI: version response received\n");
+static void handle_icd_version_response(
+    scils_t *ls,
+    const sci_ls_icd_version_response *response)
+{
+    printf("PDI: ICD version response received\n");
 
     if (pdi_state != PDI_WAIT_VERSION_RESPONSE) {
-        printf("PDI: version response received in an invalid state\n");
+        printf("PDI: version response received in invalid state\n");
         pdi_state = PDI_FAILED;
         return;
     }
 
-    if (btp_version != 0x05U) {
-        printf("PDI: unsupported BTP version: 0x%02X\n", btp_version);
+    if (response->requested_version != PDI_VERSION ||
+        response->supported_version != PDI_VERSION ||
+        response->result !=
+            SCI_VERSION_CHECK_RESULT_VERSIONS_ARE_EQUAL) {
+        printf("PDI: incompatible PDI version\n");
         pdi_state = PDI_FAILED;
         return;
     }
 
-    if (version_result != SCI_VERSION_CHECK_RESULT_VERSIONS_ARE_EQUAL) {
-        printf("PDI: version check failed: 0x%02X\n", (unsigned int)version_result);
-        pdi_state = PDI_FAILED;
-        return;
-    }
+    sci_return_code send_code =
+        scils_send_status_request(ls, "LS_OC");
 
-    send_code = scils_send_status_request(ls, "LS_OC");
-    if (send_code != SUCCESS){
+    if (send_code != SUCCESS) {
         printf("PDI: status request could not be sent\n");
         pdi_state = PDI_FAILED;
         return;
@@ -224,7 +272,6 @@ int main(void){
     scils = scils_init(&h, "IXL_CENTRAL");
     scils_register_sci_name(scils, "LS_OC", 0x61);
 
-    scils->notifications.on_version_response_received = on_version_response;
     scils->notifications.on_status_begin_received = on_initialisation_start;
     scils->notifications.on_signal_aspect_status_received = on_aspect_status;
     scils->notifications.on_brightness_status_received = on_brightness_status;
