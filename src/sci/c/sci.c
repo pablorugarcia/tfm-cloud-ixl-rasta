@@ -62,6 +62,8 @@ sci_telegram * sci_decode_telegram(struct RastaByteArray data){
     }
 
     sci_telegram * telegram = rmalloc(sizeof(sci_telegram));
+    telegram->payload.used_bytes = 0; /*addition to solve the bug of when the payload_size==0 and then payload.used_bytes stays as trash memory*/
+    rmemset(telegram->payload.data, 0x00, sizeof(telegram->payload.data));
 
 
     // check if a valid protocol was provided
