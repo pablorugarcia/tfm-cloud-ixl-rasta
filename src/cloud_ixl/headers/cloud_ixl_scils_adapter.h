@@ -18,7 +18,7 @@ sci_telegram *cloud_ixl_create_signal_aspect_telegram(char *sender, char *receiv
 typedef enum{
     CLOUD_IXL_SCILS_BUILD_ERROR,
     CLOUD_IXL_SCILS_SEND_ERROR,
-    SUCCES_SCILS,
+    SUCCESS_SCILS,
 } CloudIxlScilsSendResult;
 
 CloudIxlScilsSendResult cloud_ixl_scils_send_signal_aspect(scils_t *scils, char *receiver, SignalAspect aspect);

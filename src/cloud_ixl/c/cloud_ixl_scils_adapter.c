@@ -194,6 +194,6 @@ CloudIxlScilsSendResult cloud_ixl_scils_send_signal_aspect(scils_t *scils, char 
     if (code != SUCCESS) {
         return CLOUD_IXL_SCILS_SEND_ERROR;
     }
-    return SUCCES_SCILS;
+    return SUCCESS_SCILS;
 
 }

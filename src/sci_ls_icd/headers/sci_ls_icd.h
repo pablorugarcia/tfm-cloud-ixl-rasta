@@ -11,12 +11,6 @@ typedef struct {
     unsigned char bytes[SCI_LS_ICD_SIGNAL_VECTOR_SIZE];
 } sci_ls_icd_signal_vector;
 
-sci_ls_icd_parse_result
-sci_ls_icd_parse_signal_aspect_status(
-    sci_telegram *telegram,
-    sci_ls_icd_signal_vector *vector
-);
-
 typedef struct {
     unsigned char requested_version;
     unsigned char supported_version;
@@ -31,6 +25,12 @@ typedef enum {
     SCI_LS_ICD_PARSE_INVALID_PAYLOAD_LENGTH,
     SCI_LS_ICD_PARSE_INVALID_RESULT
 } sci_ls_icd_parse_result;
+
+sci_ls_icd_parse_result
+sci_ls_icd_parse_signal_aspect_status(
+    sci_telegram *telegram,
+    sci_ls_icd_signal_vector *vector
+);
 
 /*
  * Project-specific SCI-LS Version Response (0x0025):
