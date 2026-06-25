@@ -371,92 +371,115 @@ int main(void){
     
     pdi_state = PDI_WAIT_RASTA_HANDSHAKE;
     sr_connect(&h, OC_RASTA_ID, channels);
-    printf("Press enter to continue. \n");    º
+    printf("Press enter to continue. \n");
     getchar();
 
     if (pdi_state != PDI_ESTABLISHED) {
-    printf(
-        "Cannot send commands: PDI is not established (state=%d)\n",
-        (int)pdi_state
-    );
+        printf(
+            "Cannot send commands: PDI is not established (state=%d)\n",
+            (int)pdi_state
+        );
 
-    sr_cleanup(&h);
-    return 1;
+        sr_cleanup(&h);
+        return 1;
     }
 
     cloud_ixl_state_init(&state);
-    RouteRequest r_request = receive_route_request();
-    RouteDecision decision = request_route_decision(&state, r_request.route_id);
-    SignalAspect aspect = ls_request_command(decision); 
-    printf("Decision: %s\n", decision_name_to_string(decision));
-
-    if (!cloud_ixl_build_signal_vector(aspect, expected_signal_vector.bytes)) {
-        printf("SCI-LS expected signal vector could not be built\n");
-        sr_cleanup(&h);
-        return 1;
-    }
-
-    sci_telegram * telegram = cloud_ixl_create_signal_aspect_telegram(sender, receiver, aspect);
-    if (telegram == NULL) {
-        printf("There was an error in the building of the telegram: NULL\n");
-        sr_cleanup(&h);
-        return 1;
-    }
-    struct RastaByteArray encoded_telegram = sci_encode_telegram(telegram);
-
-    pthread_mutex_lock(&confirmation_lock);
-    command_confirmation_done = false;
-    command_confirmation_ok = false;
-    pdi_state = PDI_WAIT_CONFIRMATION;
-    pthread_mutex_unlock(&confirmation_lock);
-    
-    CloudIxlScilsSendResult result = cloud_ixl_scils_send_signal_aspect(scils, "LS_OC", aspect);
     int exit_code = 0;
 
-    switch (result) {
-        case SUCCESS_SCILS:
-            printf("SCI-LS signal aspect command sent\n");
-            break;
+    while(exit_code == 0){
+        RouteRequest r_request = receive_route_request();
+        RouteDecision decision;
+        SignalAspect aspect;
+        sci_telegram * telegram;
+        struct RastaByteArray encoded_telegram;
+        CloudIxlScilsSendResult result;
+        bool release_requested;
 
-        case CLOUD_IXL_SCILS_BUILD_ERROR:
-            printf("SCI-LS telegram could not be built\n");
+        if(r_request.command == ROUTE_COMMAND_QUIT){
+            printf("No more route commands.\n");
+            break;
+        }
+
+        release_requested = r_request.command == ROUTE_COMMAND_RELEASE;
+        if(release_requested){
+            decision = STOP;
+        } else {
+            decision = request_route_decision(&state, r_request.route_id);
+        }
+
+        aspect = ls_request_command(decision);
+        printf("Decision: %s\n", decision_name_to_string(decision));
+
+        if (!cloud_ixl_build_signal_vector(aspect, expected_signal_vector.bytes)) {
+            printf("SCI-LS expected signal vector could not be built\n");
             exit_code = 1;
             break;
+        }
 
-        case CLOUD_IXL_SCILS_SEND_ERROR:
-            printf("SCI-LS telegram could not be sent through RaSTA\n");
+        telegram = cloud_ixl_create_signal_aspect_telegram(sender, receiver, aspect);
+        if (telegram == NULL) {
+            printf("There was an error in the building of the telegram: NULL\n");
             exit_code = 1;
             break;
+        }
+        encoded_telegram = sci_encode_telegram(telegram);
 
-        default:
-            printf("Unknown SCI-LS sending result\n");
-            exit_code = 1;
+        pthread_mutex_lock(&confirmation_lock);
+        command_confirmation_done = false;
+        command_confirmation_ok = false;
+        pdi_state = PDI_WAIT_CONFIRMATION;
+        pthread_mutex_unlock(&confirmation_lock);
+        
+        result = cloud_ixl_scils_send_signal_aspect(scils, "LS_OC", aspect);
+
+        switch (result) {
+            case SUCCESS_SCILS:
+                printf("SCI-LS signal aspect command sent\n");
+                break;
+
+            case CLOUD_IXL_SCILS_BUILD_ERROR:
+                printf("SCI-LS telegram could not be built\n");
+                exit_code = 1;
+                break;
+
+            case CLOUD_IXL_SCILS_SEND_ERROR:
+                printf("SCI-LS telegram could not be sent through RaSTA\n");
+                exit_code = 1;
+                break;
+
+            default:
+                printf("Unknown SCI-LS sending result\n");
+                exit_code = 1;
+                break;
+        }
+        if(result != SUCCESS_SCILS){
+            fail_pending_signal_confirmation();
+            rfree(telegram);
+            freeRastaByteArray(&encoded_telegram);
             break;
-    }
-    if(result != SUCCESS_SCILS){
-        fail_pending_signal_confirmation();
-        sr_cleanup(&h);
+        }
+
+        pthread_mutex_lock(&confirmation_lock);
+        while (!command_confirmation_done &&
+               pdi_state == PDI_WAIT_CONFIRMATION) {
+            pthread_cond_wait(
+                &confirmation_condition,
+                &confirmation_lock
+            );
+        }
+
+        if (!command_confirmation_ok) {
+            exit_code = 1;
+        } else if(release_requested){
+            (void)release_route(&state, r_request.route_id);
+        }
+        pthread_mutex_unlock(&confirmation_lock);
+
         rfree(telegram);
         freeRastaByteArray(&encoded_telegram);
-        return exit_code;
     }
-
-    pthread_mutex_lock(&confirmation_lock);
-    while (!command_confirmation_done &&
-           pdi_state == PDI_WAIT_CONFIRMATION) {
-        pthread_cond_wait(
-            &confirmation_condition,
-            &confirmation_lock
-        );
-    }
-
-    if (!command_confirmation_ok) {
-        exit_code = 1;
-    }
-    pthread_mutex_unlock(&confirmation_lock);
 
     sr_cleanup(&h);
-    rfree(telegram);
-    freeRastaByteArray(&encoded_telegram);
     return exit_code;
 }

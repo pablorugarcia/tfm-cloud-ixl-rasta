@@ -62,7 +62,14 @@ typedef enum{
     GO,
 } RouteDecision;
 
+typedef enum{
+    ROUTE_COMMAND_REQUEST,
+    ROUTE_COMMAND_RELEASE,
+    ROUTE_COMMAND_QUIT,
+} RouteCommand;
+
 typedef struct {
+    RouteCommand command;
     RouteId route_id;
 } RouteRequest;
 
