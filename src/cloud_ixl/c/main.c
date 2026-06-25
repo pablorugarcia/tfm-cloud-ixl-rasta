@@ -20,10 +20,12 @@
 #include <sci_telegram_factory.h>
 
 #define PDI_VERSION 0x05U
-#define PDI_ESTABLISHMENT_TIMEOUT_SECONDS 10
+#define PDI_GLOBAL_TIMEOUT_SECONDS 10
 
 #define CONFIG_PATH "config/rasta_client1_local.cfg"
 #define OC_RASTA_ID 0x61UL
+#define OC_SCI_NAME "LS_OC"
+#define IXL_SCI_NAME "IXL_CENTRAL"
 #define DEFAULT_SIGNAL_LUMINOSITY SCILS_BRIGHTNESS_DAY
 
 typedef enum {
@@ -48,6 +50,77 @@ static bool command_confirmation_ok = false;
 
 
 scils_t * scils;
+
+static void cleanup_pdi_resources(struct rasta_handle *handle)
+{
+    sr_cleanup(handle);
+
+    if (scils != NULL) {
+        scils_cleanup(scils);
+        scils = NULL;
+    }
+}
+
+static bool set_global_timeout_deadline(struct timespec *deadline)
+{
+    time_t now;
+
+    if (deadline == NULL) {
+        return false;
+    }
+
+    now = time(NULL);
+    if (now == (time_t)-1) {
+        return false;
+    }
+
+    deadline->tv_sec = now + PDI_GLOBAL_TIMEOUT_SECONDS;
+    deadline->tv_nsec = 0;
+
+    return true;
+}
+
+static bool sci_name_matches(
+    const char field[SCI_NAME_LENGTH],
+    const char *expected_name)
+{
+    size_t expected_length;
+
+    if (field == NULL || expected_name == NULL) {
+        return false;
+    }
+
+    expected_length = strlen(expected_name);
+    if (expected_length > SCI_NAME_LENGTH) {
+        return false;
+    }
+
+    if (memcmp(field, expected_name, expected_length) != 0) {
+        return false;
+    }
+
+    for (size_t i = expected_length; i < SCI_NAME_LENGTH; i++) {
+        if ((unsigned char)field[i] != SCI_NAME_PADDING_CHAR) {
+            return false;
+        }
+    }
+
+    return true;
+}
+
+static bool is_expected_oc_to_ixl_header(sci_telegram *telegram)
+{
+    return telegram != NULL &&
+           telegram->protocol_type == SCI_PROTOCOL_LS &&
+           sci_name_matches(telegram->sender, OC_SCI_NAME) &&
+           sci_name_matches(telegram->receiver, IXL_SCI_NAME);
+}
+
+static bool is_empty_payload_common_message(unsigned short message_type)
+{
+    return message_type == SCI_MESSAGE_TYPE_STATUS_BEGIN ||
+           message_type == SCI_MESSAGE_TYPE_STATUS_FINISH;
+}
 
 static bool is_pdi_establishment_terminal(CloudIxlPdiState state)
 {
@@ -105,17 +178,13 @@ static bool transition_pdi_state(
 
 static CloudIxlPdiState wait_for_pdi_establishment(void)
 {
-    time_t now = time(NULL);
     struct timespec deadline;
     CloudIxlPdiState state;
 
-    if (now == (time_t)-1) {
+    if (!set_global_timeout_deadline(&deadline)) {
         set_pdi_state(PDI_FAILED);
         return PDI_FAILED;
     }
-
-    deadline.tv_sec = now + PDI_ESTABLISHMENT_TIMEOUT_SECONDS;
-    deadline.tv_nsec = 0;
 
     pthread_mutex_lock(&confirmation_lock);
     while (!is_pdi_establishment_terminal(pdi_state)) {
@@ -129,7 +198,7 @@ static CloudIxlPdiState wait_for_pdi_establishment(void)
         if (wait_result == ETIMEDOUT) {
             printf(
                 "PDI: establishment timeout after %d seconds\n",
-                PDI_ESTABLISHMENT_TIMEOUT_SECONDS
+                PDI_GLOBAL_TIMEOUT_SECONDS
             );
             set_pdi_state_locked(PDI_FAILED);
             break;
@@ -180,6 +249,48 @@ static void finish_signal_confirmation(bool matched)
     pthread_mutex_unlock(&confirmation_lock);
 }
 
+static bool wait_for_signal_confirmation(void)
+{
+    struct timespec deadline;
+    bool confirmed;
+
+    if (!set_global_timeout_deadline(&deadline)) {
+        fail_pending_signal_confirmation();
+        return false;
+    }
+
+    pthread_mutex_lock(&confirmation_lock);
+    while (!command_confirmation_done &&
+           pdi_state == PDI_WAIT_CONFIRMATION) {
+        int wait_result =
+            pthread_cond_timedwait(
+                &confirmation_condition,
+                &confirmation_lock,
+                &deadline
+            );
+
+        if (wait_result == ETIMEDOUT) {
+            printf(
+                "PDI: command feedback timeout after %d seconds\n",
+                PDI_GLOBAL_TIMEOUT_SECONDS
+            );
+            fail_pending_signal_confirmation_locked();
+            break;
+        }
+
+        if (wait_result != 0) {
+            printf("PDI: command feedback wait failed: %d\n", wait_result);
+            fail_pending_signal_confirmation_locked();
+            break;
+        }
+    }
+
+    confirmed = command_confirmation_ok;
+    pthread_mutex_unlock(&confirmation_lock);
+
+    return confirmed;
+}
+
 void on_rasta_handshake(struct rasta_notification_result *result){
     if (result->connection.remote_id != OC_RASTA_ID) {
         printf("Handshake with an unnespected RaSTA node\n");
@@ -187,11 +298,12 @@ void on_rasta_handshake(struct rasta_notification_result *result){
         return;
     }
 
-    printf("Completed RaSTA handshake with LS_OC\n");
+    printf("Completed RaSTA handshake with %s\n", OC_SCI_NAME);
 
     set_pdi_state(PDI_WAIT_VERSION_RESPONSE);
 
-    sci_return_code code = scils_send_version_request(scils, "LS_OC", PDI_VERSION);
+    sci_return_code code =
+        scils_send_version_request(scils, OC_SCI_NAME, PDI_VERSION);
 
     if (code != SUCCESS) {
         printf("PDI version request couldn't be sent\n");
@@ -217,6 +329,7 @@ static void on_brightness_status(
 
 void on_rasta_receive(struct rasta_notification_result *result)
 {
+    unsigned short message_type;
     rastaApplicationMessage message =
         sr_get_received_data(
             result->handle,
@@ -231,12 +344,29 @@ void on_rasta_receive(struct rasta_notification_result *result)
         return;
     }
 
+    if (!is_expected_oc_to_ixl_header(telegram)) {
+        printf("PDI: unexpected SCI header\n");
+        rfree(telegram);
+        set_pdi_state(PDI_FAILED);
+        return;
+    }
+
+    message_type = sci_get_message_type(telegram);
+
+    if (is_empty_payload_common_message(message_type) &&
+        telegram->payload.used_bytes != 0U) {
+        printf("PDI: invalid empty-payload SCI message length\n");
+        rfree(telegram);
+        set_pdi_state(PDI_FAILED);
+        return;
+    }
+
     pthread_mutex_lock(&confirmation_lock);
     bool waiting_for_signal_confirmation =
         pdi_state == PDI_WAIT_CONFIRMATION;
     pthread_mutex_unlock(&confirmation_lock);
 
-    if (telegram->protocol_type == SCI_PROTOCOL_LS && sci_get_message_type(telegram) == SCI_MESSAGE_TYPE_VERSION_RESPONSE) {
+    if (message_type == SCI_MESSAGE_TYPE_VERSION_RESPONSE) {
 
         sci_ls_icd_version_response response;
 
@@ -261,8 +391,7 @@ void on_rasta_receive(struct rasta_notification_result *result)
         return;
     }
 
-    if (telegram->protocol_type == SCI_PROTOCOL_LS &&
-        sci_get_message_type(telegram) ==
+    if (message_type ==
             SCILS_MESSAGE_TYPE_SIGNAL_BRIGHTNESS_STATUS) {
 
         unsigned char luminosity;
@@ -291,8 +420,7 @@ void on_rasta_receive(struct rasta_notification_result *result)
         return;
     }
 
-    if (telegram->protocol_type == SCI_PROTOCOL_LS &&
-        sci_get_message_type(telegram) ==
+    if (message_type ==
             SCI_LS_ICD_MESSAGE_TYPE_EXECUTION_ERROR) {
 
         sci_ls_icd_execution_error error;
@@ -317,8 +445,7 @@ void on_rasta_receive(struct rasta_notification_result *result)
         return;
     }
 
-    if (telegram->protocol_type == SCI_PROTOCOL_LS &&
-        sci_get_message_type(telegram) ==
+    if (message_type ==
             SCILS_MESSAGE_TYPE_SIGNAL_ASPECT_STATUS &&
         waiting_for_signal_confirmation) {
 
@@ -488,7 +615,7 @@ static void handle_icd_version_response(
     set_pdi_state(PDI_WAIT_INITIALISATION_START);
 
     sci_return_code send_code =
-        scils_send_status_request(ls, "LS_OC");
+        scils_send_status_request(ls, OC_SCI_NAME);
 
     if (send_code != SUCCESS) {
         printf("PDI: status request could not be sent\n");
@@ -573,8 +700,7 @@ static void on_initialisation_completed(scils_t *ls, char *sender)
 
 int main(void){
     IXL_state state;
-    char sender[] = "IXL_CENTRAL";
-    char receiver[] = "LS_OC";
+    char receiver[] = OC_SCI_NAME;
     struct rasta_handle h;
     struct RastaIPData channels[2] = {0};
 
@@ -590,8 +716,8 @@ int main(void){
     printf("Initialising RaSTA connection with the OC...\n");
     h.notifications.on_connection_state_change = on_connection_change;
     h.notifications.on_heartbeat_timeout = on_timeout;
-    scils = scils_init(&h, "IXL_CENTRAL");
-    scils_register_sci_name(scils, "LS_OC", 0x61);
+    scils = scils_init(&h, IXL_SCI_NAME);
+    scils_register_sci_name(scils, OC_SCI_NAME, OC_RASTA_ID);
 
     scils->notifications.on_status_begin_received = on_initialisation_start;
     scils->notifications.on_signal_aspect_status_received = on_aspect_status;
@@ -610,7 +736,7 @@ int main(void){
             (int)established_state
         );
 
-        sr_cleanup(&h);
+        cleanup_pdi_resources(&h);
         return 1;
     }
 
@@ -630,17 +756,17 @@ int main(void){
 
         case CLOUD_IXL_SCILS_BUILD_ERROR:
             printf("SCI-LS luminosity telegram could not be built\n");
-            sr_cleanup(&h);
+            cleanup_pdi_resources(&h);
             return 1;
 
         case CLOUD_IXL_SCILS_SEND_ERROR:
             printf("SCI-LS luminosity telegram could not be sent through RaSTA\n");
-            sr_cleanup(&h);
+            cleanup_pdi_resources(&h);
             return 1;
 
         default:
             printf("Unknown SCI-LS luminosity sending result\n");
-            sr_cleanup(&h);
+            cleanup_pdi_resources(&h);
             return 1;
     }
 
@@ -650,8 +776,6 @@ int main(void){
         RouteRequest r_request = receive_route_request();
         RouteDecision decision;
         SignalAspect aspect;
-        sci_telegram * telegram;
-        struct RastaByteArray encoded_telegram;
         CloudIxlScilsSendResult result;
         bool release_requested;
 
@@ -676,21 +800,13 @@ int main(void){
             break;
         }
 
-        telegram = cloud_ixl_create_signal_aspect_telegram(sender, receiver, aspect);
-        if (telegram == NULL) {
-            printf("There was an error in the building of the telegram: NULL\n");
-            exit_code = 1;
-            break;
-        }
-        encoded_telegram = sci_encode_telegram(telegram);
-
         pthread_mutex_lock(&confirmation_lock);
         command_confirmation_done = false;
         command_confirmation_ok = false;
         set_pdi_state_locked(PDI_WAIT_CONFIRMATION);
         pthread_mutex_unlock(&confirmation_lock);
         
-        result = cloud_ixl_scils_send_signal_aspect(scils, "LS_OC", aspect);
+        result = cloud_ixl_scils_send_signal_aspect(scils, receiver, aspect);
 
         switch (result) {
             case SUCCESS_SCILS:
@@ -714,31 +830,17 @@ int main(void){
         }
         if(result != SUCCESS_SCILS){
             fail_pending_signal_confirmation();
-            rfree(telegram);
-            freeRastaByteArray(&encoded_telegram);
             break;
         }
 
-        pthread_mutex_lock(&confirmation_lock);
-        while (!command_confirmation_done &&
-               pdi_state == PDI_WAIT_CONFIRMATION) {
-            pthread_cond_wait(
-                &confirmation_condition,
-                &confirmation_lock
-            );
-        }
-
-        if (!command_confirmation_ok) {
+        if (!wait_for_signal_confirmation()) {
             exit_code = 1;
         } else if(release_requested){
             (void)release_route(&state, r_request.route_id);
         }
-        pthread_mutex_unlock(&confirmation_lock);
 
-        rfree(telegram);
-        freeRastaByteArray(&encoded_telegram);
     }
 
-    sr_cleanup(&h);
+    cleanup_pdi_resources(&h);
     return exit_code;
 }
