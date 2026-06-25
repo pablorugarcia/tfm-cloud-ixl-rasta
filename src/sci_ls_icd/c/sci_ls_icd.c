@@ -19,6 +19,21 @@ static bool is_icd_version_result(sci_version_check_result result)
            result == SCI_VERSION_CHECK_RESULT_VERSIONS_ARE_EQUAL;
 }
 
+static bool is_icd_luminosity(unsigned char luminosity)
+{
+    return luminosity == SCI_LS_ICD_LUMINOSITY_DAY ||
+           luminosity == SCI_LS_ICD_LUMINOSITY_NIGHT;
+}
+
+static bool is_icd_execution_error_code(unsigned char error_code)
+{
+    return error_code == SCI_LS_ICD_EXECUTION_ERROR_LAMP_FAILURE ||
+           error_code == SCI_LS_ICD_EXECUTION_ERROR_UNKNOWN_SIGNAL_VECTOR ||
+           error_code ==
+               SCI_LS_ICD_EXECUTION_ERROR_INVALID_HEADER_RECEIVER_OR_TYPE ||
+           error_code == SCI_LS_ICD_EXECUTION_ERROR_INVALID_LUMINOSITY;
+}
+
 sci_ls_icd_parse_result sci_ls_icd_parse_signal_aspect_status(sci_telegram *telegram, sci_ls_icd_signal_vector *vector){
     if(telegram == NULL || vector == NULL){
         return SCI_LS_ICD_PARSE_INVALID_ARGUMENT;
@@ -36,6 +51,73 @@ sci_ls_icd_parse_result sci_ls_icd_parse_signal_aspect_status(sci_telegram *tele
         return SCI_LS_ICD_PARSE_INVALID_PAYLOAD_LENGTH;
     }
     memcpy(vector->bytes, telegram->payload.data, SCI_LS_ICD_SIGNAL_VECTOR_SIZE);
+
+    return SCI_LS_ICD_PARSE_SUCCESS;
+}
+
+sci_ls_icd_parse_result sci_ls_icd_parse_luminosity_status(
+    sci_telegram *telegram,
+    unsigned char *luminosity)
+{
+    if (telegram == NULL || luminosity == NULL) {
+        return SCI_LS_ICD_PARSE_INVALID_ARGUMENT;
+    }
+
+    if (telegram->protocol_type != SCI_PROTOCOL_LS) {
+        return SCI_LS_ICD_PARSE_INVALID_PROTOCOL;
+    }
+
+    if (sci_get_message_type(telegram) !=
+        SCILS_MESSAGE_TYPE_SIGNAL_BRIGHTNESS_STATUS) {
+        return SCI_LS_ICD_PARSE_INVALID_MESSAGE_TYPE;
+    }
+
+    if (telegram->payload.used_bytes !=
+        SCI_LS_ICD_LUMINOSITY_STATUS_PAYLOAD_SIZE) {
+        return SCI_LS_ICD_PARSE_INVALID_PAYLOAD_LENGTH;
+    }
+
+    if (!is_icd_luminosity(telegram->payload.data[0])) {
+        return SCI_LS_ICD_PARSE_INVALID_RESULT;
+    }
+
+    *luminosity = telegram->payload.data[0];
+
+    return SCI_LS_ICD_PARSE_SUCCESS;
+}
+
+sci_ls_icd_parse_result sci_ls_icd_parse_execution_error(
+    sci_telegram *telegram,
+    sci_ls_icd_execution_error *error)
+{
+    if (telegram == NULL || error == NULL) {
+        return SCI_LS_ICD_PARSE_INVALID_ARGUMENT;
+    }
+
+    if (telegram->protocol_type != SCI_PROTOCOL_LS) {
+        return SCI_LS_ICD_PARSE_INVALID_PROTOCOL;
+    }
+
+    if (sci_get_message_type(telegram) !=
+        SCI_LS_ICD_MESSAGE_TYPE_EXECUTION_ERROR) {
+        return SCI_LS_ICD_PARSE_INVALID_MESSAGE_TYPE;
+    }
+
+    if (telegram->payload.used_bytes !=
+        SCI_LS_ICD_EXECUTION_ERROR_PAYLOAD_SIZE) {
+        return SCI_LS_ICD_PARSE_INVALID_PAYLOAD_LENGTH;
+    }
+
+    if (!is_icd_execution_error_code(telegram->payload.data[0])) {
+        return SCI_LS_ICD_PARSE_INVALID_RESULT;
+    }
+
+    error->error_code = telegram->payload.data[0];
+    memcpy(
+        error->current_signal_vector.bytes,
+        &telegram->payload.data[1],
+        SCI_LS_ICD_SIGNAL_VECTOR_SIZE
+    );
 
     return SCI_LS_ICD_PARSE_SUCCESS;
 }

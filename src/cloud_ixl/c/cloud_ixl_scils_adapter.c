@@ -10,6 +10,19 @@
 
 #include <string.h>
 
+static bool is_valid_sci_name(const char *name)
+{
+    return name != NULL &&
+           name[0] != '\0' &&
+           strlen(name) <= SCI_NAME_LENGTH;
+}
+
+static bool is_valid_icd_luminosity(scils_brightness luminosity)
+{
+    return luminosity == SCILS_BRIGHTNESS_DAY ||
+           luminosity == SCILS_BRIGHTNESS_NIGHT;
+}
+
 bool cloud_ixl_build_signal_vector(SignalAspect aspect, uint8_t vector[SCI_LS_ICD_SIGNAL_VECTOR_SIZE]){
     static const uint8_t signal_vectors[APAGADA + 1][SCI_LS_ICD_SIGNAL_VECTOR_SIZE] = {
         [VIA_LIBRE] = {
@@ -83,13 +96,7 @@ sci_telegram *cloud_ixl_create_signal_aspect_telegram(char *sender, char *receiv
     if (!cloud_ixl_build_signal_vector(aspect, vector)) {
         return NULL;
     }
-    if (sender == NULL || receiver == NULL){
-        return NULL;
-    }
-    if (strlen(sender) > SCI_NAME_LENGTH || strlen(receiver) > SCI_NAME_LENGTH){
-        return NULL;
-    }
-    if (sender[0] == '\0' || receiver[0] == '\0') {
+    if (!is_valid_sci_name(sender) || !is_valid_sci_name(receiver)) {
         return NULL;
     }
 
@@ -127,4 +134,38 @@ CloudIxlScilsSendResult cloud_ixl_scils_send_signal_aspect(scils_t *scils, char 
     }
     return SUCCESS_SCILS;
 
+}
+
+CloudIxlScilsSendResult cloud_ixl_scils_send_luminosity(
+    scils_t *scils,
+    char *receiver,
+    scils_brightness luminosity)
+{
+    if (scils == NULL ||
+        !is_valid_sci_name(scils->sciName) ||
+        !is_valid_sci_name(receiver) ||
+        !is_valid_icd_luminosity(luminosity)) {
+        return CLOUD_IXL_SCILS_BUILD_ERROR;
+    }
+
+    sci_telegram *telegram =
+        scils_create_change_brightness(
+            scils->sciName,
+            receiver,
+            luminosity
+        );
+
+    if (telegram == NULL) {
+        return CLOUD_IXL_SCILS_BUILD_ERROR;
+    }
+
+    sci_return_code code = scils_send_telegram(scils, telegram);
+
+    rfree(telegram);
+
+    if (code != SUCCESS) {
+        return CLOUD_IXL_SCILS_SEND_ERROR;
+    }
+
+    return SUCCESS_SCILS;
 }

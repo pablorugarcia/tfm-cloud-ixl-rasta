@@ -24,6 +24,7 @@
 
 #define CONFIG_PATH "config/rasta_client1_local.cfg"
 #define OC_RASTA_ID 0x61UL
+#define DEFAULT_SIGNAL_LUMINOSITY SCILS_BRIGHTNESS_DAY
 
 typedef enum {
     PDI_DISCONNECTED, /*there is no conection*/
@@ -51,6 +52,14 @@ scils_t * scils;
 static bool is_pdi_establishment_terminal(CloudIxlPdiState state)
 {
     return state == PDI_ESTABLISHED || state == PDI_FAILED;
+}
+
+static bool is_luminosity_status_allowed(CloudIxlPdiState state)
+{
+    return state == PDI_RECEIVING_INITIAL_STATUS ||
+           state == PDI_ESTABLISHED ||
+           state == PDI_WAIT_CONFIRMATION ||
+           state == PDI_COMMAND_CONFIRMED;
 }
 
 static void set_pdi_state_locked(CloudIxlPdiState state)
@@ -196,6 +205,16 @@ static void handle_icd_version_response(
     const sci_ls_icd_version_response *response
 );
 
+static void handle_icd_execution_error(
+    const sci_ls_icd_execution_error *error
+);
+
+static void on_brightness_status(
+    scils_t *ls,
+    char *sender,
+    scils_brightness brightness
+);
+
 void on_rasta_receive(struct rasta_notification_result *result)
 {
     rastaApplicationMessage message =
@@ -213,7 +232,7 @@ void on_rasta_receive(struct rasta_notification_result *result)
     }
 
     pthread_mutex_lock(&confirmation_lock);
-    bool waiting_for_confirmation =
+    bool waiting_for_signal_confirmation =
         pdi_state == PDI_WAIT_CONFIRMATION;
     pthread_mutex_unlock(&confirmation_lock);
 
@@ -244,8 +263,64 @@ void on_rasta_receive(struct rasta_notification_result *result)
 
     if (telegram->protocol_type == SCI_PROTOCOL_LS &&
         sci_get_message_type(telegram) ==
+            SCILS_MESSAGE_TYPE_SIGNAL_BRIGHTNESS_STATUS) {
+
+        unsigned char luminosity;
+        sci_ls_icd_parse_result parse_result =
+            sci_ls_icd_parse_luminosity_status(
+                telegram,
+                &luminosity
+            );
+
+        if (parse_result != SCI_LS_ICD_PARSE_SUCCESS) {
+            rfree(telegram);
+            printf(
+                "PDI: invalid luminosity status telegram: %d\n",
+                (int)parse_result
+            );
+            fail_pending_signal_confirmation();
+            return;
+        }
+
+        on_brightness_status(
+            scils,
+            telegram->sender,
+            (scils_brightness)luminosity
+        );
+        rfree(telegram);
+        return;
+    }
+
+    if (telegram->protocol_type == SCI_PROTOCOL_LS &&
+        sci_get_message_type(telegram) ==
+            SCI_LS_ICD_MESSAGE_TYPE_EXECUTION_ERROR) {
+
+        sci_ls_icd_execution_error error;
+        sci_ls_icd_parse_result parse_result =
+            sci_ls_icd_parse_execution_error(
+                telegram,
+                &error
+            );
+
+        rfree(telegram);
+
+        if (parse_result != SCI_LS_ICD_PARSE_SUCCESS) {
+            printf(
+                "PDI: invalid execution error telegram: %d\n",
+                (int)parse_result
+            );
+            fail_pending_signal_confirmation();
+            return;
+        }
+
+        handle_icd_execution_error(&error);
+        return;
+    }
+
+    if (telegram->protocol_type == SCI_PROTOCOL_LS &&
+        sci_get_message_type(telegram) ==
             SCILS_MESSAGE_TYPE_SIGNAL_ASPECT_STATUS &&
-        waiting_for_confirmation) {
+        waiting_for_signal_confirmation) {
 
         sci_ls_icd_signal_vector reported_vector;
         sci_ls_icd_parse_result parse_result =
@@ -348,6 +423,48 @@ static void on_timeout(struct rasta_notification_result *result){
     fail_pending_signal_confirmation();
 }
 
+static const char *execution_error_code_to_string(unsigned char error_code)
+{
+    switch (error_code) {
+        case SCI_LS_ICD_EXECUTION_ERROR_LAMP_FAILURE:
+            return "lamp failure";
+
+        case SCI_LS_ICD_EXECUTION_ERROR_UNKNOWN_SIGNAL_VECTOR:
+            return "unknown or incomplete signal vector";
+
+        case SCI_LS_ICD_EXECUTION_ERROR_INVALID_HEADER_RECEIVER_OR_TYPE:
+            return "invalid header, receiver or message type";
+
+        case SCI_LS_ICD_EXECUTION_ERROR_INVALID_LUMINOSITY:
+            return "invalid luminosity";
+
+        default:
+            return "unknown execution error";
+    }
+}
+
+static void print_signal_vector(const sci_ls_icd_signal_vector *vector)
+{
+    printf("PDI: current signal vector:");
+    for (size_t i = 0; i < SCI_LS_ICD_SIGNAL_VECTOR_SIZE; i++) {
+        printf(" %02X", (unsigned int)vector->bytes[i]);
+    }
+    printf("\n");
+}
+
+static void handle_icd_execution_error(
+    const sci_ls_icd_execution_error *error)
+{
+    printf(
+        "PDI: execution error received: 0x%02X (%s)\n",
+        (unsigned int)error->error_code,
+        execution_error_code_to_string(error->error_code)
+    );
+    print_signal_vector(&error->current_signal_vector);
+
+    fail_pending_signal_confirmation();
+}
+
 static void handle_icd_version_response(
     scils_t *ls,
     const sci_ls_icd_version_response *response)
@@ -415,7 +532,18 @@ static void on_brightness_status(
     (void)ls;
     (void)sender;
 
-    if (!require_pdi_state(PDI_RECEIVING_INITIAL_STATUS)) {
+    bool valid_state;
+    pthread_mutex_lock(&confirmation_lock);
+
+    valid_state = is_luminosity_status_allowed(pdi_state);
+
+    if (!valid_state) {
+        set_pdi_state_locked(PDI_FAILED);
+    }
+
+    pthread_mutex_unlock(&confirmation_lock);
+
+    if (!valid_state) {
         printf("PDI: brightness status received in an invalid state\n");
         return;
     }
@@ -487,6 +615,35 @@ int main(void){
     }
 
     cloud_ixl_state_init(&state);
+
+    CloudIxlScilsSendResult luminosity_result =
+        cloud_ixl_scils_send_luminosity(
+            scils,
+            receiver,
+            DEFAULT_SIGNAL_LUMINOSITY
+        );
+
+    switch (luminosity_result) {
+        case SUCCESS_SCILS:
+            printf("SCI-LS luminosity command sent\n");
+            break;
+
+        case CLOUD_IXL_SCILS_BUILD_ERROR:
+            printf("SCI-LS luminosity telegram could not be built\n");
+            sr_cleanup(&h);
+            return 1;
+
+        case CLOUD_IXL_SCILS_SEND_ERROR:
+            printf("SCI-LS luminosity telegram could not be sent through RaSTA\n");
+            sr_cleanup(&h);
+            return 1;
+
+        default:
+            printf("Unknown SCI-LS luminosity sending result\n");
+            sr_cleanup(&h);
+            return 1;
+    }
+
     int exit_code = 0;
 
     while(exit_code == 0){
