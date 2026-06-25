@@ -1,7 +1,9 @@
 #include <stdbool.h>
+#include <errno.h>
 #include <pthread.h>
 #include <stdio.h>
 #include <string.h>
+#include <time.h>
 #include <cloud_ixl_routes.h>
 #include <cloud_ixl_state.h>
 #include <cloud_ixl_types.h>
@@ -18,6 +20,7 @@
 #include <sci_telegram_factory.h>
 
 #define PDI_VERSION 0x05U
+#define PDI_ESTABLISHMENT_TIMEOUT_SECONDS 10
 
 #define CONFIG_PATH "config/rasta_client1_local.cfg"
 #define OC_RASTA_ID 0x61UL
@@ -45,17 +48,112 @@ static bool command_confirmation_ok = false;
 
 scils_t * scils;
 
+static bool is_pdi_establishment_terminal(CloudIxlPdiState state)
+{
+    return state == PDI_ESTABLISHED || state == PDI_FAILED;
+}
+
+static void set_pdi_state_locked(CloudIxlPdiState state)
+{
+    pdi_state = state;
+    pthread_cond_broadcast(&confirmation_condition);
+}
+
+static void set_pdi_state(CloudIxlPdiState state)
+{
+    pthread_mutex_lock(&confirmation_lock);
+    set_pdi_state_locked(state);
+    pthread_mutex_unlock(&confirmation_lock);
+}
+
+static bool require_pdi_state(CloudIxlPdiState expected)
+{
+    bool valid;
+
+    pthread_mutex_lock(&confirmation_lock);
+    valid = pdi_state == expected;
+    if (!valid) {
+        set_pdi_state_locked(PDI_FAILED);
+    }
+    pthread_mutex_unlock(&confirmation_lock);
+
+    return valid;
+}
+
+static bool transition_pdi_state(
+    CloudIxlPdiState expected,
+    CloudIxlPdiState next)
+{
+    bool transitioned;
+
+    pthread_mutex_lock(&confirmation_lock);
+    transitioned = pdi_state == expected;
+    set_pdi_state_locked(transitioned ? next : PDI_FAILED);
+    pthread_mutex_unlock(&confirmation_lock);
+
+    return transitioned;
+}
+
+static CloudIxlPdiState wait_for_pdi_establishment(void)
+{
+    time_t now = time(NULL);
+    struct timespec deadline;
+    CloudIxlPdiState state;
+
+    if (now == (time_t)-1) {
+        set_pdi_state(PDI_FAILED);
+        return PDI_FAILED;
+    }
+
+    deadline.tv_sec = now + PDI_ESTABLISHMENT_TIMEOUT_SECONDS;
+    deadline.tv_nsec = 0;
+
+    pthread_mutex_lock(&confirmation_lock);
+    while (!is_pdi_establishment_terminal(pdi_state)) {
+        int wait_result =
+            pthread_cond_timedwait(
+                &confirmation_condition,
+                &confirmation_lock,
+                &deadline
+            );
+
+        if (wait_result == ETIMEDOUT) {
+            printf(
+                "PDI: establishment timeout after %d seconds\n",
+                PDI_ESTABLISHMENT_TIMEOUT_SECONDS
+            );
+            set_pdi_state_locked(PDI_FAILED);
+            break;
+        }
+
+        if (wait_result != 0) {
+            printf("PDI: establishment wait failed: %d\n", wait_result);
+            set_pdi_state_locked(PDI_FAILED);
+            break;
+        }
+    }
+
+    state = pdi_state;
+    pthread_mutex_unlock(&confirmation_lock);
+
+    return state;
+}
+
+static void fail_pending_signal_confirmation_locked(void)
+{
+    if (!command_confirmation_done) {
+        command_confirmation_done = true;
+        command_confirmation_ok = false;
+    }
+
+    set_pdi_state_locked(PDI_FAILED);
+}
+
 static void fail_pending_signal_confirmation(void)
 {
     pthread_mutex_lock(&confirmation_lock);
 
-    pdi_state = PDI_FAILED;
-
-    if (!command_confirmation_done) {
-        command_confirmation_done = true;
-        command_confirmation_ok = false;
-        pthread_cond_signal(&confirmation_condition);
-    }
+    fail_pending_signal_confirmation_locked();
 
     pthread_mutex_unlock(&confirmation_lock);
 }
@@ -66,32 +164,31 @@ static void finish_signal_confirmation(bool matched)
 
     command_confirmation_done = true;
     command_confirmation_ok = matched;
-    pdi_state = matched ? PDI_COMMAND_CONFIRMED : PDI_COMMAND_MISMATCH;
+    set_pdi_state_locked(
+        matched ? PDI_COMMAND_CONFIRMED : PDI_COMMAND_MISMATCH
+    );
 
-    pthread_cond_signal(&confirmation_condition);
     pthread_mutex_unlock(&confirmation_lock);
 }
 
 void on_rasta_handshake(struct rasta_notification_result *result){
-    pdi_state = PDI_WAIT_VERSION_RESPONSE;
-
     if (result->connection.remote_id != OC_RASTA_ID) {
         printf("Handshake with an unnespected RaSTA node\n");
-        pdi_state = PDI_FAILED;
+        set_pdi_state(PDI_FAILED);
         return;
     }
 
     printf("Completed RaSTA handshake with LS_OC\n");
 
+    set_pdi_state(PDI_WAIT_VERSION_RESPONSE);
+
     sci_return_code code = scils_send_version_request(scils, "LS_OC", PDI_VERSION);
 
     if (code != SUCCESS) {
         printf("PDI version request couldn't be sent\n");
-        pdi_state = PDI_FAILED;
+        set_pdi_state(PDI_FAILED);
         return;
     }
-
-    pdi_state = PDI_WAIT_VERSION_RESPONSE;
 }
 
 static void handle_icd_version_response(
@@ -137,7 +234,7 @@ void on_rasta_receive(struct rasta_notification_result *result)
                 "PDI: invalid ICD version response: %d\n",
                 (int)parse_result
             );
-            pdi_state = PDI_FAILED;
+            set_pdi_state(PDI_FAILED);
             return;
         }
 
@@ -196,29 +293,35 @@ static void on_connection_change(struct rasta_notification_result *result){
     switch (result->connection.current_state) {
         case RASTA_CONNECTION_CLOSED:
             printf("CLOSED\n");
+            pthread_mutex_lock(&confirmation_lock);
             if (pdi_state == PDI_WAIT_CONFIRMATION) {
-                fail_pending_signal_confirmation();
+                fail_pending_signal_confirmation_locked();
             } else {
-                pdi_state = PDI_DISCONNECTED;
+                set_pdi_state_locked(PDI_DISCONNECTED);
             }
+            pthread_mutex_unlock(&confirmation_lock);
             break;
 
         case RASTA_CONNECTION_DOWN:
             printf("DOWN\n");
+            pthread_mutex_lock(&confirmation_lock);
             if (pdi_state == PDI_WAIT_CONFIRMATION) {
-                fail_pending_signal_confirmation();
+                fail_pending_signal_confirmation_locked();
             } else {
-                pdi_state = PDI_WAIT_RASTA_HANDSHAKE;
+                set_pdi_state_locked(PDI_WAIT_RASTA_HANDSHAKE);
             }
+            pthread_mutex_unlock(&confirmation_lock);
             break;
 
         case RASTA_CONNECTION_START:
             printf("START\n");
+            pthread_mutex_lock(&confirmation_lock);
             if (pdi_state == PDI_WAIT_CONFIRMATION) {
-                fail_pending_signal_confirmation();
+                fail_pending_signal_confirmation_locked();
             } else {
-                pdi_state = PDI_WAIT_RASTA_HANDSHAKE;
+                set_pdi_state_locked(PDI_WAIT_RASTA_HANDSHAKE);
             }
+            pthread_mutex_unlock(&confirmation_lock);
             break;
 
         case RASTA_CONNECTION_UP:
@@ -251,9 +354,8 @@ static void handle_icd_version_response(
 {
     printf("PDI: ICD version response received\n");
 
-    if (pdi_state != PDI_WAIT_VERSION_RESPONSE) {
+    if (!require_pdi_state(PDI_WAIT_VERSION_RESPONSE)) {
         printf("PDI: version response received in invalid state\n");
-        pdi_state = PDI_FAILED;
         return;
     }
 
@@ -262,20 +364,20 @@ static void handle_icd_version_response(
         response->result !=
             SCI_VERSION_CHECK_RESULT_VERSIONS_ARE_EQUAL) {
         printf("PDI: incompatible PDI version\n");
-        pdi_state = PDI_FAILED;
+        set_pdi_state(PDI_FAILED);
         return;
     }
+
+    set_pdi_state(PDI_WAIT_INITIALISATION_START);
 
     sci_return_code send_code =
         scils_send_status_request(ls, "LS_OC");
 
     if (send_code != SUCCESS) {
         printf("PDI: status request could not be sent\n");
-        pdi_state = PDI_FAILED;
+        set_pdi_state(PDI_FAILED);
         return;
     }
-
-    pdi_state = PDI_WAIT_INITIALISATION_START;
 }
 
 static void on_initialisation_start(scils_t *ls, char *sender){
@@ -284,22 +386,21 @@ static void on_initialisation_start(scils_t *ls, char *sender){
 
     printf("PDI: initial status transfer started\n");
 
-    if (pdi_state != PDI_WAIT_INITIALISATION_START) {
+    if (!transition_pdi_state(
+            PDI_WAIT_INITIALISATION_START,
+            PDI_RECEIVING_INITIAL_STATUS
+        )) {
         printf("PDI: status begin received in an invalid state\n");
-        pdi_state = PDI_FAILED;
         return;
     }
-
-    pdi_state = PDI_RECEIVING_INITIAL_STATUS;
 }
 
 static void on_aspect_status(scils_t *ls, char *sender, scils_signal_aspect aspect){
     (void)ls;
     (void)sender;
 
-    if (pdi_state != PDI_RECEIVING_INITIAL_STATUS) {
+    if (!require_pdi_state(PDI_RECEIVING_INITIAL_STATUS)) {
         printf("PDI: aspect status received in an invalid state\n");
-        pdi_state = PDI_FAILED;
         return;
     }
 
@@ -314,9 +415,8 @@ static void on_brightness_status(
     (void)ls;
     (void)sender;
 
-    if (pdi_state != PDI_RECEIVING_INITIAL_STATUS) {
+    if (!require_pdi_state(PDI_RECEIVING_INITIAL_STATUS)) {
         printf("PDI: brightness status received in an invalid state\n");
-        pdi_state = PDI_FAILED;
         return;
     }
 
@@ -331,13 +431,14 @@ static void on_initialisation_completed(scils_t *ls, char *sender)
     (void)ls;
     (void)sender;
 
-    if (pdi_state != PDI_RECEIVING_INITIAL_STATUS) {
+    if (!transition_pdi_state(
+            PDI_RECEIVING_INITIAL_STATUS,
+            PDI_ESTABLISHED
+        )) {
         printf("PDI: status finish received in an invalid state\n");
-        pdi_state = PDI_FAILED;
         return;
     }
 
-    pdi_state = PDI_ESTABLISHED;
     printf("PDI: initialisation completed\n");
 }
 
@@ -369,15 +470,16 @@ int main(void){
     scils->notifications.on_brightness_status_received = on_brightness_status;
     scils->notifications.on_status_finish_received = on_initialisation_completed;
     
-    pdi_state = PDI_WAIT_RASTA_HANDSHAKE;
+    set_pdi_state(PDI_WAIT_RASTA_HANDSHAKE);
     sr_connect(&h, OC_RASTA_ID, channels);
-    printf("Press enter to continue. \n");
-    getchar();
+    printf("Waiting for PDI establishment...\n");
 
-    if (pdi_state != PDI_ESTABLISHED) {
+    CloudIxlPdiState established_state = wait_for_pdi_establishment();
+
+    if (established_state != PDI_ESTABLISHED) {
         printf(
             "Cannot send commands: PDI is not established (state=%d)\n",
-            (int)pdi_state
+            (int)established_state
         );
 
         sr_cleanup(&h);
@@ -428,7 +530,7 @@ int main(void){
         pthread_mutex_lock(&confirmation_lock);
         command_confirmation_done = false;
         command_confirmation_ok = false;
-        pdi_state = PDI_WAIT_CONFIRMATION;
+        set_pdi_state_locked(PDI_WAIT_CONFIRMATION);
         pthread_mutex_unlock(&confirmation_lock);
         
         result = cloud_ixl_scils_send_signal_aspect(scils, "LS_OC", aspect);
