@@ -40,12 +40,16 @@ typedef enum{
 } PointState;
 
 typedef enum{
-    GREEN,
-    RED,
-    YELLOW,
-    GREEN_FLASHING,
-    WHITE,
-    BLUE,
+    VIA_LIBRE = 0,
+    PARADA,
+    ANUNCIO_PARADA,
+    VIA_LIBRE_CONDICIONAL,
+    ANUNCIO_PRECAUCION,
+    REBASE,
+    PARADA_SELECTIVA_N2,
+    REBASE_AUTORIZADO,
+    PARADA_SELECTIVA_N1,
+    APAGADA
 } SignalAspect;
 
 typedef enum{

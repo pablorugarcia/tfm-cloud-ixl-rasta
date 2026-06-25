@@ -10,7 +10,7 @@ void cloud_ixl_state_init(IXL_state *state){
     }
     /*TODO: mejorar el orden de esto*/
     for(size_t i = 0; i < SIGNAL_COUNT; i++){
-        state->signal[i] = RED;
+        state->signal[i] = PARADA;
     }
     for(size_t i = 0; i < POINT_COUNT; i++){
         state->point[i] = LEFT;

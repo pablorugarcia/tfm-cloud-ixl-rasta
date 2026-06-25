@@ -5,12 +5,12 @@ SignalAspect ls_request_command (RouteDecision decision){
     switch (decision)
     {
     case GO:
-        return GREEN ;
+        return VIA_LIBRE ;
     
     case STOP:
-        return RED;
+        return PARADA;
 
     default:
-        return RED;
+        return PARADA;
     }
 }
