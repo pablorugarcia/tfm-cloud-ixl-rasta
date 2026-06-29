@@ -72,7 +72,7 @@ struct redundancy_mux{
     unsigned int port_count;
 
     /**
-     * the file descriptors of the used udp sockes. array has length port_count
+     * the file descriptors of the used udp sockets. array has length port_count
      */
     int * udp_socket_fds;
 

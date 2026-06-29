@@ -1,0 +1,2378 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Cloud IXL - flujo expandido de int main()</title>
+<style>
+:root {
+  color-scheme: dark;
+  --bg: #050505;
+  --panel: #121214;
+  --soft: #1d1d1f;
+  --glass: rgba(255, 255, 255, .08);
+  --glass-strong: rgba(255, 255, 255, .14);
+  --ink: #f8fafc;
+  --muted: #a1a1aa;
+  --line: rgba(255, 255, 255, .14);
+  --line-strong: rgba(255, 255, 255, .24);
+  --blue: #66ccff;
+  --cyan: #6ee7f9;
+  --green: #86efac;
+  --amber: #ffd60a;
+  --red: #fda4af;
+  --violet: #b8b3ff;
+  --shadow: 0 28px 80px rgba(0, 0, 0, .46);
+}
+* { box-sizing: border-box; }
+html { scroll-behavior: smooth; }
+body {
+  margin: 0;
+  background:
+    linear-gradient(180deg, #000 0%, #050505 42%, #101010 100%);
+  color: var(--ink);
+  font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+}
+button, input { font: inherit; }
+code, pre { font-family: "SFMono-Regular", Consolas, "Liberation Mono", Menlo, monospace; }
+code {
+  display: inline-block;
+  max-width: 100%;
+  overflow-wrap: anywhere;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  background: #020617;
+  color: #d1fae5;
+  padding: .15rem .34rem;
+}
+a { color: inherit; }
+.topbar {
+  position: sticky;
+  top: 0;
+  z-index: 40;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  align-items: center;
+  justify-content: space-between;
+  border-bottom: 1px solid var(--line);
+  background: rgba(10, 10, 10, .72);
+  backdrop-filter: blur(24px) saturate(180%);
+  padding: 10px clamp(14px, 3vw, 34px);
+}
+.brand {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+  font-weight: 950;
+}
+.brand-mark {
+  display: grid;
+  place-items: center;
+  width: 34px;
+  height: 34px;
+  border-radius: 8px;
+  color: #050505;
+  background: linear-gradient(135deg, #f5f5f7, #66ccff);
+}
+.nav {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: center;
+}
+.nav a, .nav button, .chip-button {
+  cursor: pointer;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  background: rgba(255, 255, 255, .06);
+  color: var(--ink);
+  padding: 8px 11px;
+  text-decoration: none;
+  font-weight: 850;
+  font-size: .86rem;
+}
+.nav a:hover, .nav button:hover, .chip-button:hover, .chip-button.is-active {
+  border-color: var(--cyan);
+  color: var(--blue);
+  background: rgba(102, 204, 255, .12);
+  box-shadow: 0 0 0 3px rgba(102, 204, 255, .14);
+}
+header {
+  padding: 34px clamp(16px, 4vw, 58px) 32px;
+}
+.hero {
+  display: grid;
+  grid-template-columns: minmax(0, .9fr) minmax(360px, 1.1fr);
+  gap: clamp(22px, 4vw, 64px);
+  align-items: center;
+  max-width: 1500px;
+  margin: 0 auto;
+  min-height: calc(100vh - 92px);
+}
+.eyebrow {
+  color: var(--blue);
+  font-size: .78rem;
+  font-weight: 950;
+  letter-spacing: .08em;
+  text-transform: uppercase;
+}
+h1 {
+  margin: 10px 0 16px;
+  max-width: 1040px;
+  font-size: clamp(3rem, 7vw, 7.4rem);
+  line-height: .96;
+  letter-spacing: 0;
+}
+.subtitle {
+  max-width: 1060px;
+  margin: 0;
+  color: var(--muted);
+  line-height: 1.65;
+  font-size: clamp(1.05rem, 1.6vw, 1.32rem);
+}
+.notice, .metric, .panel, .card, .flow-box, .table-wrap, .source-card {
+  border: 1px solid var(--line);
+  border-radius: 22px;
+  background: linear-gradient(180deg, rgba(255,255,255,.08), rgba(255,255,255,.035));
+  box-shadow: var(--shadow);
+}
+.notice {
+  padding: 18px;
+  line-height: 1.58;
+  color: var(--muted);
+  backdrop-filter: blur(18px);
+}
+.notice strong { color: var(--ink); }
+.metrics {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+}
+.metric {
+  padding: 16px;
+}
+.metric strong {
+  display: block;
+  font-size: 1.55rem;
+}
+.metric span {
+  color: var(--muted);
+  font-weight: 750;
+  font-size: .88rem;
+}
+main {
+  max-width: 1500px;
+  margin: 0 auto;
+  padding: 0 clamp(14px, 3vw, 34px) 46px;
+}
+.layout {
+  display: grid;
+  grid-template-columns: minmax(270px, .32fr) minmax(0, 1fr);
+  gap: 16px;
+  align-items: start;
+}
+.sidebar {
+  position: sticky;
+  top: 72px;
+  display: grid;
+  gap: 12px;
+}
+.panel {
+  padding: clamp(18px, 3vw, 34px);
+}
+.panel h2, .panel h3 {
+  margin: 0 0 10px;
+  letter-spacing: 0;
+}
+.panel p {
+  color: var(--muted);
+  line-height: 1.58;
+}
+.search label {
+  display: grid;
+  gap: 7px;
+  color: var(--ink);
+  font-weight: 900;
+}
+.search input {
+  width: 100%;
+  border: 1px solid var(--line-strong);
+  border-radius: 8px;
+  background: var(--soft);
+  color: var(--ink);
+  padding: 10px 12px;
+}
+.filter {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.stat-list {
+  display: grid;
+  gap: 8px;
+}
+.stat {
+  display: flex;
+  justify-content: space-between;
+  gap: 10px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--soft);
+  padding: 8px 10px;
+  color: var(--muted);
+  font-size: .88rem;
+}
+.stat strong { color: var(--ink); }
+.content {
+  display: grid;
+  gap: 16px;
+  min-width: 0;
+}
+.section-title {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  gap: 12px;
+  align-items: end;
+  margin-bottom: 12px;
+}
+.section-title h2 {
+  margin: 0;
+}
+.section-title p {
+  margin: 0;
+  max-width: 860px;
+  color: var(--muted);
+  line-height: 1.58;
+}
+.flow-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(290px, 1fr));
+  gap: 12px;
+}
+.flow-box {
+  padding: 14px;
+  border-top: 5px solid var(--accent, var(--blue));
+}
+.flow-box h3 {
+  margin: 0 0 8px;
+}
+.flow-box ol, .flow-box ul {
+  margin: 0;
+  padding-left: 20px;
+  color: var(--muted);
+  line-height: 1.55;
+}
+.flow-box li + li { margin-top: 6px; }
+.status-tab {
+  display: grid;
+  gap: 16px;
+  border-color: rgba(34, 211, 238, .34);
+}
+.tab-strip {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  border-bottom: 1px solid var(--line);
+  padding-bottom: 12px;
+}
+.tab-pill {
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  background: rgba(255,255,255,.06);
+  color: var(--muted);
+  padding: 8px 12px;
+  font-weight: 900;
+  font-size: .86rem;
+}
+.tab-pill.is-active {
+  border-color: var(--cyan);
+  background: rgba(34, 211, 238, .14);
+  color: var(--cyan);
+  box-shadow: 0 0 0 3px rgba(34, 211, 238, .12);
+}
+.status-flow {
+  display: grid;
+  gap: 12px;
+}
+.pdi-guide {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(230px, 1fr));
+  gap: 10px;
+}
+.guide-card {
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: rgba(255,255,255,.045);
+  padding: 12px;
+  line-height: 1.5;
+}
+.guide-card strong {
+  display: block;
+  color: var(--ink);
+  margin-bottom: 6px;
+}
+.guide-card p {
+  margin: 0;
+  color: var(--muted);
+}
+.guide-card .code-badge {
+  display: inline-flex;
+  margin: 0 0 8px;
+}
+.code-badge {
+  border: 1px solid currentColor;
+  border-radius: 999px;
+  background: rgba(34, 211, 238, .12);
+  color: var(--cyan);
+  padding: 4px 8px;
+  font-family: "SFMono-Regular", Consolas, "Liberation Mono", Menlo, monospace;
+  font-size: .82rem;
+  font-weight: 950;
+}
+.code-badge.open { color: var(--green); background: rgba(134, 239, 172, .12); }
+.code-badge.close { color: var(--amber); background: rgba(251, 191, 36, .12); }
+.message-head, .message-row {
+  display: grid;
+  grid-template-columns: minmax(260px, 1fr) minmax(180px, .38fr) minmax(260px, 1fr);
+  gap: 10px;
+  align-items: stretch;
+}
+.lane-title {
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: rgba(255,255,255,.06);
+  color: var(--ink);
+  padding: 10px 12px;
+  font-weight: 950;
+  text-align: center;
+}
+.lane-title.flow-axis {
+  color: var(--cyan);
+  background: rgba(34, 211, 238, .1);
+}
+.status-step {
+  position: relative;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: #0b1220;
+  padding: 12px;
+  line-height: 1.5;
+}
+.status-step strong {
+  display: block;
+  margin-bottom: 6px;
+  color: var(--ink);
+}
+.status-step p {
+  margin: 0;
+  color: var(--muted);
+}
+.status-step code {
+  margin-top: 8px;
+}
+.status-step .state-label {
+  display: inline-flex;
+  width: max-content;
+  max-width: 100%;
+  border: 1px solid rgba(134, 239, 172, .5);
+  border-radius: 999px;
+  background: rgba(134, 239, 172, .1);
+  color: var(--green);
+  padding: 5px 8px;
+  font-family: "SFMono-Regular", Consolas, "Liberation Mono", Menlo, monospace;
+  font-size: .78rem;
+  font-weight: 950;
+}
+.status-step.is-muted {
+  border-style: dashed;
+  background: rgba(255,255,255,.035);
+}
+.message-arrow {
+  display: grid;
+  place-items: center;
+  gap: 8px;
+  min-height: 100%;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background:
+    linear-gradient(90deg, transparent 0 14%, rgba(34, 211, 238, .3) 14% 86%, transparent 86%),
+    rgba(34, 211, 238, .06);
+  color: var(--cyan);
+  padding: 10px;
+  text-align: center;
+  font-weight: 900;
+}
+.message-arrow span {
+  color: var(--muted);
+  font-size: .78rem;
+}
+.message-arrow strong {
+  display: block;
+  color: var(--ink);
+  font-family: "SFMono-Regular", Consolas, "Liberation Mono", Menlo, monospace;
+  font-size: 1.22rem;
+  letter-spacing: .04em;
+}
+.message-arrow em {
+  display: block;
+  color: var(--cyan);
+  font-style: normal;
+  font-size: .78rem;
+  font-weight: 950;
+  text-transform: uppercase;
+}
+.message-arrow small {
+  display: block;
+  color: var(--muted);
+  max-width: 180px;
+  line-height: 1.35;
+}
+.message-arrow.local {
+  background: rgba(255,255,255,.045);
+  color: var(--muted);
+}
+.message-arrow.open {
+  border-color: rgba(134, 239, 172, .45);
+  background:
+    linear-gradient(90deg, transparent 0 14%, rgba(134, 239, 172, .32) 14% 86%, transparent 86%),
+    rgba(134, 239, 172, .07);
+}
+.message-arrow.open em { color: var(--green); }
+.message-arrow.close {
+  border-color: rgba(251, 191, 36, .5);
+  background:
+    linear-gradient(90deg, transparent 0 14%, rgba(251, 191, 36, .34) 14% 86%, transparent 86%),
+    rgba(251, 191, 36, .08);
+}
+.message-arrow.close em { color: var(--amber); }
+.status-window {
+  grid-column: 1 / -1;
+  border: 1px solid rgba(134, 239, 172, .34);
+  border-radius: 8px;
+  background:
+    linear-gradient(90deg, rgba(134, 239, 172, .13), rgba(34, 211, 238, .08)),
+    #07120e;
+  color: #d1fae5;
+  padding: 12px;
+  line-height: 1.5;
+}
+.status-window strong {
+  display: block;
+  margin-bottom: 5px;
+}
+.status-window p {
+  margin: 0;
+  color: #bbf7d0;
+}
+.status-notes {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+  gap: 10px;
+}
+.status-note {
+  border-left: 5px solid var(--cyan);
+  border-radius: 0 8px 8px 0;
+  background: rgba(34, 211, 238, .1);
+  color: #cffafe;
+  padding: 12px;
+  line-height: 1.52;
+}
+.status-note strong {
+  display: block;
+  margin-bottom: 5px;
+  color: #ecfeff;
+}
+.call-tree {
+  display: grid;
+  gap: 10px;
+}
+.card {
+  overflow: hidden;
+}
+.card[hidden] { display: none; }
+.card summary {
+  cursor: pointer;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 12px;
+  align-items: center;
+  padding: 13px 15px;
+  list-style: none;
+}
+.card summary::-webkit-details-marker { display: none; }
+.card[open] {
+  border-color: var(--cyan);
+  box-shadow: 0 0 0 3px rgba(34, 211, 238, .16), var(--shadow);
+}
+.summary-main {
+  display: grid;
+  gap: 6px;
+  min-width: 0;
+}
+.summary-title {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: center;
+}
+.summary-title strong { color: var(--ink); }
+.summary-code {
+  color: var(--muted);
+  font-size: .84rem;
+}
+.summary-file {
+  color: var(--muted);
+  font-size: .82rem;
+  text-align: right;
+  overflow-wrap: anywhere;
+}
+.tag {
+  display: inline-flex;
+  align-items: center;
+  width: max-content;
+  max-width: 100%;
+  border: 1px solid currentColor;
+  border-radius: 999px;
+  padding: 4px 8px;
+  font-size: .73rem;
+  font-weight: 950;
+}
+.tag.main { color: var(--blue); background: rgba(125, 211, 252, .12); }
+.tag.cloud { color: var(--green); background: rgba(134, 239, 172, .12); }
+.tag.sci { color: var(--cyan); background: rgba(34, 211, 238, .12); }
+.tag.rasta { color: var(--violet); background: rgba(196, 181, 253, .12); }
+.tag.callback { color: var(--amber); background: rgba(251, 191, 36, .12); }
+.tag.terminal { color: var(--red); background: rgba(253, 164, 175, .12); }
+.tag.util { color: var(--muted); background: rgba(148, 163, 184, .12); }
+.body {
+  display: grid;
+  gap: 12px;
+  border-top: 1px solid var(--line);
+  background: #0b1220;
+  padding: 14px;
+}
+.fact-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(230px, 1fr));
+  gap: 10px;
+}
+.fact {
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--panel);
+  padding: 10px;
+  color: var(--muted);
+  line-height: 1.5;
+}
+.fact strong {
+  display: block;
+  margin-bottom: 5px;
+  color: var(--ink);
+}
+.chain {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 7px;
+  align-items: center;
+}
+.chain span {
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  background: var(--soft);
+  color: var(--ink);
+  padding: 6px 9px;
+  font-size: .82rem;
+  font-weight: 850;
+}
+.chain span::after {
+  content: " ->";
+  color: var(--line-strong);
+}
+.chain span:last-child::after { content: ""; }
+.branch-list {
+  display: grid;
+  gap: 8px;
+  margin: 0;
+  padding-left: 18px;
+  color: var(--muted);
+  line-height: 1.55;
+}
+.table-wrap {
+  overflow: auto;
+}
+table {
+  width: 100%;
+  border-collapse: collapse;
+  min-width: 780px;
+}
+th, td {
+  border-bottom: 1px solid var(--line);
+  padding: 10px 11px;
+  text-align: left;
+  vertical-align: top;
+}
+th {
+  background: var(--soft);
+  color: var(--ink);
+}
+td {
+  color: var(--muted);
+}
+.source-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+  gap: 12px;
+}
+.source-card {
+  padding: 12px;
+  display: grid;
+  gap: 8px;
+}
+.source-card h3 {
+  margin: 0;
+  font-size: 1rem;
+}
+.source-card p {
+  margin: 0;
+  color: var(--muted);
+  line-height: 1.5;
+}
+.source-card code {
+  color: var(--blue);
+}
+.risk-list {
+  display: grid;
+  gap: 10px;
+}
+.risk {
+  border-left: 5px solid var(--amber);
+  border-radius: 0 8px 8px 0;
+  background: rgba(251, 191, 36, .12);
+  padding: 12px;
+  color: #fde68a;
+  line-height: 1.52;
+}
+.risk strong {
+  display: block;
+  margin-bottom: 5px;
+  color: #fef3c7;
+}
+.scroll-progress {
+  position: fixed;
+  top: 0;
+  left: 0;
+  z-index: 80;
+  width: 0%;
+  height: 3px;
+  background: linear-gradient(90deg, #f5f5f7, var(--blue), var(--green), var(--amber));
+  box-shadow: 0 0 18px rgba(102, 204, 255, .55);
+}
+.hero-copy {
+  display: grid;
+  gap: 22px;
+}
+.hero h1 span {
+  display: block;
+  color: transparent;
+  background: linear-gradient(90deg, #f5f5f7 0%, #a1a1aa 34%, var(--blue) 70%, #fff 100%);
+  -webkit-background-clip: text;
+  background-clip: text;
+}
+.hero-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  align-items: center;
+}
+.hero-link {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 42px;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  background: rgba(255, 255, 255, .08);
+  color: var(--ink);
+  padding: 10px 16px;
+  text-decoration: none;
+  font-weight: 900;
+}
+.hero-link.primary {
+  border-color: transparent;
+  background: #f5f5f7;
+  color: #050505;
+}
+.hero-link:hover {
+  transform: translateY(-1px);
+  border-color: var(--blue);
+  box-shadow: 0 12px 34px rgba(102, 204, 255, .16);
+}
+.hero-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.hero-meta span {
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  background: rgba(255,255,255,.05);
+  color: var(--muted);
+  padding: 7px 10px;
+  font-size: .86rem;
+  font-weight: 800;
+}
+.hero-visual {
+  position: relative;
+  min-height: 640px;
+  perspective: 1400px;
+}
+.device-frame {
+  position: relative;
+  min-height: 620px;
+  border: 1px solid rgba(255,255,255,.18);
+  border-radius: 42px;
+  background:
+    linear-gradient(145deg, rgba(255,255,255,.18), rgba(255,255,255,.02) 42%, rgba(255,255,255,.10)),
+    linear-gradient(180deg, #1c1c1e, #050505);
+  box-shadow:
+    inset 0 1px 0 rgba(255,255,255,.22),
+    inset 0 -1px 0 rgba(255,255,255,.08),
+    0 36px 110px rgba(0,0,0,.65);
+  overflow: hidden;
+  transform: rotateX(7deg) rotateY(-10deg);
+  transform-style: preserve-3d;
+}
+.device-frame::before {
+  content: "";
+  position: absolute;
+  inset: 1px;
+  border-radius: 40px;
+  background:
+    linear-gradient(120deg, rgba(255,255,255,.16), transparent 24%),
+    radial-gradient(circle at 72% 18%, rgba(102,204,255,.18), transparent 18rem),
+    #060607;
+}
+.device-glass {
+  position: absolute;
+  inset: 28px;
+  border: 1px solid rgba(255,255,255,.13);
+  border-radius: 32px;
+  background:
+    linear-gradient(180deg, rgba(255,255,255,.08), rgba(255,255,255,.02)),
+    linear-gradient(90deg, rgba(255,255,255,.04) 1px, transparent 1px) 0 0 / 46px 46px,
+    linear-gradient(rgba(255,255,255,.04) 1px, transparent 1px) 0 0 / 46px 46px;
+  overflow: hidden;
+  transform: translateZ(32px);
+}
+.device-notch {
+  position: absolute;
+  top: 16px;
+  left: 50%;
+  z-index: 2;
+  width: 126px;
+  height: 28px;
+  transform: translateX(-50%);
+  border-radius: 999px;
+  background: #000;
+  border: 1px solid rgba(255,255,255,.12);
+}
+.signal-line {
+  position: absolute;
+  left: 12%;
+  right: 12%;
+  top: 48%;
+  height: 2px;
+  background: linear-gradient(90deg, transparent, rgba(102,204,255,.9), rgba(134,239,172,.9), transparent);
+  box-shadow: 0 0 18px rgba(102,204,255,.7);
+}
+.packet {
+  position: absolute;
+  top: calc(48% - 7px);
+  left: 12%;
+  width: 16px;
+  height: 16px;
+  border-radius: 999px;
+  background: #f5f5f7;
+  box-shadow: 0 0 22px rgba(255,255,255,.9), 0 0 40px rgba(102,204,255,.7);
+  animation: packetMove 4.2s ease-in-out infinite;
+}
+.device-node {
+  position: absolute;
+  z-index: 2;
+  width: min(42%, 260px);
+  border: 1px solid rgba(255,255,255,.15);
+  border-radius: 22px;
+  background: rgba(17,17,17,.76);
+  backdrop-filter: blur(22px);
+  padding: 16px;
+  box-shadow: 0 20px 46px rgba(0,0,0,.35);
+}
+.device-node strong {
+  display: block;
+  margin-bottom: 5px;
+}
+.device-node span {
+  display: block;
+  color: var(--muted);
+  font-size: .88rem;
+  line-height: 1.4;
+}
+.device-node.one { left: 8%; top: 16%; }
+.device-node.two { right: 8%; top: 32%; }
+.device-node.three { left: 10%; bottom: 18%; }
+.device-node.four { right: 8%; bottom: 13%; }
+.live-readout {
+  position: absolute;
+  left: 50%;
+  bottom: 42px;
+  z-index: 3;
+  transform: translateX(-50%);
+  width: min(72%, 460px);
+  border: 1px solid rgba(255,255,255,.15);
+  border-radius: 18px;
+  background: rgba(0,0,0,.58);
+  backdrop-filter: blur(18px);
+  padding: 12px;
+  color: #d1fae5;
+  font-family: "SFMono-Regular", Consolas, "Liberation Mono", Menlo, monospace;
+  font-size: .83rem;
+  line-height: 1.55;
+}
+.live-readout div {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  border-bottom: 1px solid rgba(255,255,255,.08);
+  padding: 5px 0;
+}
+.live-readout div:last-child { border-bottom: 0; }
+.halo-ring {
+  position: absolute;
+  inset: auto -12% 2% -8%;
+  height: 180px;
+  border-radius: 50%;
+  background: radial-gradient(ellipse at center, rgba(102,204,255,.24), transparent 65%);
+  filter: blur(18px);
+  transform: rotate(-6deg);
+}
+.experience {
+  display: grid;
+  grid-template-columns: minmax(0, .85fr) minmax(320px, 1.15fr);
+  gap: 16px;
+  align-items: stretch;
+  margin-bottom: 16px;
+}
+.spotlight-copy {
+  display: grid;
+  align-content: center;
+  gap: 14px;
+}
+.spotlight-copy h2 {
+  margin: 0;
+  font-size: clamp(2rem, 4.6vw, 5rem);
+  line-height: 1;
+}
+.spotlight-copy p {
+  color: var(--muted);
+  font-size: 1.08rem;
+  line-height: 1.64;
+}
+.spotlight {
+  position: relative;
+  min-height: 430px;
+  overflow: hidden;
+  border: 1px solid var(--line);
+  border-radius: 30px;
+  background:
+    linear-gradient(160deg, rgba(102,204,255,.16), transparent 26%),
+    linear-gradient(340deg, rgba(134,239,172,.13), transparent 30%),
+    #0a0a0b;
+}
+.spotlight-card {
+  position: absolute;
+  inset: 26px;
+  display: grid;
+  align-content: center;
+  gap: 18px;
+  opacity: 0;
+  transform: translateY(18px) scale(.985);
+  transition: opacity .5s ease, transform .5s ease;
+}
+.spotlight-card.is-active {
+  opacity: 1;
+  transform: translateY(0) scale(1);
+}
+.spotlight-card h3 {
+  margin: 0;
+  font-size: clamp(1.8rem, 4vw, 4rem);
+  line-height: 1;
+}
+.spotlight-card p {
+  max-width: 720px;
+  margin: 0;
+  color: var(--muted);
+  font-size: 1.05rem;
+  line-height: 1.62;
+}
+.spotlight-path {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.spotlight-path span {
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  background: rgba(255,255,255,.06);
+  color: var(--ink);
+  padding: 7px 10px;
+  font-size: .82rem;
+  font-weight: 850;
+}
+.spotlight-controls {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.spotlight-controls button {
+  cursor: pointer;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  background: rgba(255,255,255,.07);
+  color: var(--ink);
+  padding: 8px 11px;
+  font-weight: 850;
+}
+.spotlight-controls button.is-active {
+  background: #f5f5f7;
+  color: #050505;
+}
+.panel, .flow-box, .card, .source-card, .metric, .notice {
+  transition: transform .28s ease, border-color .28s ease, box-shadow .28s ease, opacity .5s ease;
+}
+.panel:hover, .flow-box:hover, .source-card:hover, .metric:hover {
+  border-color: var(--line-strong);
+  transform: translateY(-2px);
+}
+.reveal {
+  opacity: 0;
+  transform: translateY(28px);
+}
+.reveal.is-visible {
+  opacity: 1;
+  transform: translateY(0);
+}
+@keyframes packetMove {
+  0%, 100% { left: 12%; transform: scale(.9); }
+  45% { left: 82%; transform: scale(1.08); }
+  50% { left: 82%; transform: scale(1.2); }
+}
+footer {
+  color: var(--muted);
+  line-height: 1.55;
+  padding: 0 clamp(14px, 3vw, 34px) 30px;
+  max-width: 1500px;
+  margin: 0 auto;
+}
+@media (max-width: 1100px) {
+  .hero, .layout, .experience { grid-template-columns: 1fr; }
+  .sidebar { position: static; }
+  .hero { min-height: auto; }
+  .device-frame { transform: none; }
+}
+@media (max-width: 700px) {
+  .metrics { grid-template-columns: 1fr; }
+  .topbar { position: static; }
+  .card summary { grid-template-columns: 1fr; }
+  .summary-file { text-align: left; }
+  .message-head { display: none; }
+  .message-row { grid-template-columns: 1fr; }
+  .message-arrow {
+    min-height: auto;
+    background: rgba(34, 211, 238, .08);
+  }
+  .hero-visual { min-height: 560px; }
+  .device-frame { min-height: 540px; border-radius: 30px; }
+  .device-glass { inset: 18px; border-radius: 24px; }
+  .device-node { width: 78%; }
+  .device-node.one, .device-node.three { left: 7%; }
+  .device-node.two, .device-node.four { right: 7%; }
+  .live-readout { width: 86%; font-size: .76rem; }
+}
+</style>
+</head>
+<body>
+<div class="scroll-progress" id="scrollProgress" aria-hidden="true"></div>
+<div class="topbar">
+  <div class="brand"><span class="brand-mark">IXL</span><span>Cloud IXL main.c</span></div>
+  <nav class="nav" aria-label="Navegacion principal">
+    <a href="#resumen">Resumen</a>
+    <a href="#status-response">PDI mensajes</a>
+    <a href="#dependencias">Dependencias</a>
+    <a href="#terminales">Terminales</a>
+    <a href="#fuentes">Fuentes</a>
+    <button type="button" id="expandAll">Expandir todo</button>
+    <button type="button" id="collapseAll">Colapsar</button>
+  </nav>
+</div>
+
+<header>
+  <div class="hero">
+    <div class="hero-copy">
+      <div class="eyebrow">Representacion trazable del arbol de ejecucion</div>
+      <h1><span>Cloud IXL</span> main flow.</h1>
+      <p class="subtitle">
+        Este HTML despliega el flujo actual de <code>src/cloud_ixl/c/main.c</code>, incluyendo las llamadas
+        directas, los callbacks RaSTA/SCI-LS registrados por <code>main()</code>, las ramas de error y los
+        puntos terminales de cada dependencia observada en el repositorio.
+      </p>
+      <div class="hero-actions">
+        <a class="hero-link primary" href="#dependencias">Explorar dependencias</a>
+        <a class="hero-link" href="#terminales">Ver finales del flujo</a>
+      </div>
+      <div class="hero-meta" aria-label="Resumen tecnico">
+        <span>PDI handshake</span>
+        <span>SCI-LS payload</span>
+        <span>RaSTA transport</span>
+        <span>Cloud IXL state</span>
+      </div>
+    </div>
+    <div class="hero-visual" aria-label="Visualizacion animada del flujo Cloud IXL">
+      <div class="halo-ring" aria-hidden="true"></div>
+      <div class="device-frame">
+        <div class="device-notch" aria-hidden="true"></div>
+        <div class="device-glass">
+          <div class="signal-line" aria-hidden="true"></div>
+          <div class="packet" aria-hidden="true"></div>
+          <div class="device-node one">
+            <strong>main()</strong>
+            <span>Configura estado local, canales y callbacks.</span>
+          </div>
+          <div class="device-node two">
+            <strong>RaSTA</strong>
+            <span>ConReq, threads, notificaciones y transporte.</span>
+          </div>
+          <div class="device-node three">
+            <strong>SCI-LS / ICD</strong>
+            <span>Version, status, luminosidad y aspecto.</span>
+          </div>
+          <div class="device-node four">
+            <strong>Confirmacion</strong>
+            <span>Compara vector esperado contra vector reportado.</span>
+          </div>
+          <div class="live-readout" aria-label="Estado simulado del flujo">
+            <div><span>PDI</span><strong>WAIT_RASTA_HANDSHAKE -> ESTABLISHED</strong></div>
+            <div><span>payload</span><strong>SCI_PROTOCOL_LS</strong></div>
+            <div><span>feedback</span><strong>memcmp(expected, reported)</strong></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</header>
+
+<main>
+  <section class="experience panel reveal">
+    <div class="spotlight-copy">
+      <div class="eyebrow">Modo presentacion</div>
+      <h2>Del arranque al cleanup, como una historia interactiva.</h2>
+      <p>
+        Los pasos principales se muestran como escenas: establecimiento PDI, callbacks, bucle de ruta,
+        envio SCI-LS y confirmacion final. La documentacion detallada sigue debajo, con busqueda y filtros.
+      </p>
+      <div class="spotlight-controls" id="spotlightControls" aria-label="Seleccion de escena"></div>
+    </div>
+    <div class="spotlight" id="spotlight" aria-live="polite"></div>
+  </section>
+
+  <section class="notice reveal">
+    <strong>Alcance:</strong> es una documentacion del PoC de laboratorio segun el codigo inspeccionado.
+    No es una implementacion normativa ni evidencia de cumplimiento SIL4, EN 50159, EULYNX o RaSTA.
+    Las capas SCI-LS, RaSTA y el ICD se muestran como dependencias de ejecucion del Cloud IXL.
+  </section>
+
+  <section id="resumen" class="panel">
+    <div class="section-title">
+      <div>
+        <h2>Resumen ejecutivo del flujo</h2>
+        <p>
+          <code>main()</code> mezcla ejecucion secuencial con eventos asincronos. La parte secuencial configura
+          RaSTA/SCI-LS, inicia la conexion, espera el establecimiento PDI y luego procesa ordenes de ruta.
+          La parte asincrona completa el PDI y confirma comandos mediante callbacks.
+        </p>
+      </div>
+      <div class="metrics" aria-label="Metricas del flujo">
+        <div class="metric"><strong>3</strong><span>fases principales</span></div>
+        <div class="metric"><strong>4</strong><span>callbacks RaSTA registrados</span></div>
+        <div class="metric"><strong>4</strong><span>callbacks SCI-LS registrados</span></div>
+        <div class="metric"><strong>6</strong><span>salidas terminales relevantes</span></div>
+      </div>
+    </div>
+    <div class="flow-grid">
+      <article class="flow-box" style="--accent: var(--blue)">
+        <h3>1. Arranque y PDI</h3>
+        <ol>
+          <li>Declara estado Cloud IXL, receptor, handle RaSTA y dos canales localhost.</li>
+          <li>Inicializa RaSTA con <code>sr_init_handle()</code> y registra callbacks.</li>
+          <li>Inicializa SCI-LS con nombre <code>IXL_CENTRAL</code> y mapea <code>LS_OC</code> a <code>0x61</code>.</li>
+          <li>Lanza <code>sr_connect()</code> y espera a <code>PDI_ESTABLISHED</code> o <code>PDI_FAILED</code>.</li>
+        </ol>
+      </article>
+      <article class="flow-box" style="--accent: var(--amber)">
+        <h3>2. Establecimiento asincrono</h3>
+        <ol>
+          <li><code>on_rasta_handshake()</code> valida el RaSTA ID remoto.</li>
+          <li>Envia version request SCI-LS.</li>
+          <li><code>on_rasta_receive()</code> parsea version response, status begin, status finish y errores.</li>
+          <li>La condicion se desbloquea cuando el estado llega a <code>PDI_ESTABLISHED</code> o <code>PDI_FAILED</code>.</li>
+        </ol>
+      </article>
+      <article class="flow-box" style="--accent: var(--green)">
+        <h3>3. Bucle de ordenes</h3>
+        <ol>
+          <li>Lee <code>request</code>, <code>release</code> o <code>quit</code>.</li>
+          <li>Calcula decision de ruta, traduce a aspecto de senal y construye vector esperado.</li>
+          <li>Envia telegrama SCI-LS sobre RaSTA y espera confirmacion.</li>
+          <li>Si la confirmacion coincide, continua; si falla, sale con error y limpia recursos.</li>
+        </ol>
+      </article>
+    </div>
+  </section>
+
+  <section id="status-response" class="panel status-tab reveal">
+    <div class="tab-strip" aria-label="Pestanas paralelas de lectura">
+      <span class="tab-pill">Flujo main()</span>
+      <span class="tab-pill is-active">PDI y mensajes</span>
+    </div>
+    <div class="section-title">
+      <div>
+        <h2>Flujo paralelo: mensajes de version, PDI y status</h2>
+        <p>
+          Esta vista sigue el establecimiento PDI completo observado en el repositorio: conexion RaSTA,
+          intercambio de version SCI-LS, solicitud de estado inicial y transicion final a
+          <code>PDI_ESTABLISHED</code>. No introduce nuevos tipos de telegrama.
+        </p>
+      </div>
+    </div>
+    <div class="pdi-guide" aria-label="Guia rapida de codigos PDI">
+      <div class="guide-card">
+        <span class="code-badge">0x2400</span>
+        <strong>VERSION_REQUEST</strong>
+        <p>Cloud IXL pregunta al OC si acepta la version PDI que quiere usar.</p>
+      </div>
+      <div class="guide-card">
+        <span class="code-badge">0x2500</span>
+        <strong>VERSION_RESPONSE</strong>
+        <p>El OC contesta con version solicitada, version soportada y resultado.</p>
+      </div>
+      <div class="guide-card">
+        <span class="code-badge">0x2100</span>
+        <strong>STATUS_REQUEST</strong>
+        <p>Cloud IXL pide la foto inicial del estado del objeto.</p>
+      </div>
+      <div class="guide-card">
+        <span class="code-badge open">0x2200</span>
+        <strong>STATUS_BEGIN</strong>
+        <p>Abre el bloque de estado. No es el estado en si: es el inicio de la transferencia.</p>
+      </div>
+      <div class="guide-card">
+        <span class="code-badge close">0x2300</span>
+        <strong>STATUS_FINISH</strong>
+        <p>Cierra el bloque de estado. Significa: "ya no envio mas estados iniciales".</p>
+      </div>
+      <div class="guide-card">
+        <span class="code-badge open">PDI_*</span>
+        <strong>Estado interno</strong>
+        <p><code>PDI_WAIT_...</code> o <code>PDI_ESTABLISHED</code> son estados locales del PoC, no telegramas.</p>
+      </div>
+    </div>
+
+    <div class="status-flow" aria-label="Diagrama de carriles Cloud IXL Object Controller">
+      <div class="message-head" aria-hidden="true">
+        <div class="lane-title">Cloud IXL: que hace</div>
+        <div class="lane-title flow-axis">que cruza por RaSTA/SCI-LS</div>
+        <div class="lane-title">OC / Light Signal: que hace</div>
+      </div>
+
+      <article class="message-row">
+        <div class="status-step">
+          <strong>1. Prepara la comunicacion</strong>
+          <p>Registra callbacks, crea <code>scils</code>, conoce al receptor <code>LS_OC</code> y llama a <code>sr_connect()</code>.</p>
+          <span class="state-label">PDI_WAIT_RASTA_HANDSHAKE</span>
+        </div>
+        <div class="message-arrow">
+          <span>primero sube el transporte</span>
+          <strong>RaSTA</strong>
+          <em>handshake</em>
+          <small>Todavia no hay telegrama SCI de version.</small>
+        </div>
+        <div class="status-step">
+          <strong>Escucha como objeto</strong>
+          <p>El simulador OC ya tiene handle RaSTA, nombre SCI <code>LS_OC</code> y callbacks SCI-LS.</p>
+          <span class="state-label">OC_PDI_WAIT_VERSION_REQUEST</span>
+        </div>
+      </article>
+
+      <article class="message-row">
+        <div class="status-step">
+          <strong>2. Pregunta por version</strong>
+          <p>Tras el handshake correcto, el callback del IXL envia la version PDI que quiere usar.</p>
+          <span class="state-label">PDI_WAIT_VERSION_RESPONSE</span>
+          <code>payload: PDI_VERSION 0x05</code>
+        </div>
+        <div class="message-arrow">
+          <span>IXL pregunta</span>
+          <strong>0x2400</strong>
+          <em>VERSION_REQUEST</em>
+          <small>"Aceptas trabajar con PDI 0x05?"</small>
+        </div>
+        <div class="status-step">
+          <strong>Comprueba version</strong>
+          <p>El OC compara la version pedida con la version que soporta.</p>
+          <code>SUPPORTED_PDI_VERSION 0x05</code>
+        </div>
+      </article>
+
+      <article class="message-row">
+        <div class="status-step">
+          <strong>3. Lee la respuesta</strong>
+          <p>El IXL parsea la respuesta ICD y exige que requested, supported y result sean compatibles.</p>
+          <code>requested, supported, result</code>
+        </div>
+        <div class="message-arrow">
+          <span>OC contesta</span>
+          <strong>0x2500</strong>
+          <em>VERSION_RESPONSE</em>
+          <small>"Si/no, esta es mi version soportada."</small>
+        </div>
+        <div class="status-step">
+          <strong>Devuelve resultado</strong>
+          <p>Si la version coincide, el OC queda esperando que el IXL pida el estado inicial.</p>
+          <code>SCI_VERSION_CHECK_RESULT_*</code>
+          <span class="state-label">OC_PDI_WAIT_STATUS_REQUEST</span>
+        </div>
+      </article>
+
+      <article class="message-row">
+        <div class="status-step">
+          <strong>4. Pide la foto inicial</strong>
+          <p>Si la version es valida, el IXL solicita al OC que envie su estado inicial.</p>
+          <span class="state-label">PDI_WAIT_INITIALISATION_START</span>
+        </div>
+        <div class="message-arrow">
+          <span>IXL pide estado</span>
+          <strong>0x2100</strong>
+          <em>STATUS_REQUEST</em>
+          <small>"Mandame tu estado inicial."</small>
+        </div>
+        <div class="status-step">
+          <strong>Recibe solicitud de estado</strong>
+          <p>El OC valida que estaba esperando este mensaje y empieza la transferencia de estado.</p>
+          <span class="state-label">OC_PDI_WAIT_STATUS_REQUEST</span>
+        </div>
+      </article>
+
+      <article class="message-row">
+        <div class="status-step">
+          <strong>5. Abre recepcion de estado</strong>
+          <p>Al recibir este telegrama, el IXL entiende: "a partir de ahora pueden llegar estados iniciales".</p>
+          <span class="state-label">PDI_RECEIVING_INITIAL_STATUS</span>
+        </div>
+        <div class="message-arrow open">
+          <span>OC abre bloque</span>
+          <strong>0x2200</strong>
+          <em>STATUS_BEGIN</em>
+          <small>No es la foto. Es la marca de inicio.</small>
+        </div>
+        <div class="status-step">
+          <strong>Abre el bloque STATUS</strong>
+          <p><code>STATUS_BEGIN</code> delimita el comienzo. En este PoC debe ir con payload vacio.</p>
+          <code>payload vacio</code>
+        </div>
+      </article>
+
+      <div class="status-window">
+        <strong>Ventana STATUS abierta: entre 0x2200 y 0x2300 van los estados iniciales</strong>
+        <p><code>0x2200</code> abre la ventana. Dentro podrian viajar mensajes concretos como aspecto o luminosidad. <code>0x2300</code> la cierra. Por eso no existe un unico <code>STATUS_RESPONSE</code>.</p>
+      </div>
+
+      <article class="message-row">
+        <div class="status-step is-muted">
+          <strong>6. Estados concretos dentro</strong>
+          <p>Estos mensajes si llevan contenido de estado. El Cloud IXL tiene callbacks para recibirlos.</p>
+          <code>on_aspect_status()</code>
+          <code>on_brightness_status()</code>
+        </div>
+        <div class="message-arrow local">
+          <span>contenido opcional</span>
+          <strong>STATUS DATA</strong>
+          <em>aspecto / brillo</em>
+          <small>El OC simulado actual puede saltarse esta parte.</small>
+        </div>
+        <div class="status-step is-muted">
+          <strong>Estados del objeto</strong>
+          <p>En una transferencia mas completa aqui iria la informacion concreta de la senal.</p>
+          <code>SIGNAL_ASPECT_STATUS / BRIGHTNESS_STATUS</code>
+        </div>
+      </article>
+
+      <article class="message-row">
+        <div class="status-step">
+          <strong>7. Cierra recepcion de estado</strong>
+          <p>Al recibir finish, el IXL entiende: "ya no llegan mas estados iniciales". Entonces puede establecer el PDI.</p>
+          <span class="state-label">PDI_ESTABLISHED</span>
+        </div>
+        <div class="message-arrow close">
+          <span>OC cierra bloque</span>
+          <strong>0x2300</strong>
+          <em>STATUS_FINISH</em>
+          <small>No es "OK" por si solo. Solo cierra el bloque.</small>
+        </div>
+        <div class="status-step">
+          <strong>Cierra el bloque STATUS</strong>
+          <p>El OC termina de enviar la transferencia de estado inicial.</p>
+          <span class="state-label">OC_PDI_ESTABLISHED</span>
+        </div>
+      </article>
+
+      <article class="message-row">
+        <div class="status-step">
+          <strong>8. main() queda desbloqueado</strong>
+          <p><code>wait_for_pdi_establishment()</code> devuelve estado establecido y el bucle de ordenes puede empezar.</p>
+          <code>Cloud IXL puede enviar comandos</code>
+        </div>
+        <div class="message-arrow local">
+          <span>estado terminal de establecimiento</span>
+          <strong>PDI OK</strong>
+          <em>sin telegrama nuevo</em>
+        </div>
+        <div class="status-step">
+          <strong>Ambos lados sincronizados</strong>
+          <p>El flujo queda listo para mensajes de orden, confirmacion de aspecto y gestion de errores.</p>
+          <code>PoC de laboratorio</code>
+        </div>
+      </article>
+    </div>
+    <div class="status-notes">
+      <div class="status-note">
+        <strong>Lectura correcta del status</strong>
+        No hay <code>SCI_MESSAGE_TYPE_STATUS_RESPONSE</code>. El estado inicial se delimita con
+        <code>STATUS_BEGIN -> posibles estados SCI-LS -> STATUS_FINISH</code>.
+      </div>
+      <div class="status-note">
+        <strong>Ramas de fallo PDI</strong>
+        Remote ID inesperado, version incompatible, payload vacio con longitud distinta de cero, estado PDI incorrecto,
+        error de parseo o timeout terminan en <code>PDI_FAILED</code>.
+      </div>
+      <div class="status-note">
+        <strong>Separacion de capas</strong>
+        SCI-LS es el payload/interfaz de aplicacion; RaSTA transporta los bytes; el PDI aqui es la maquina de estados
+        local del PoC que decide cuando Cloud IXL puede enviar ordenes.
+      </div>
+      <div class="status-note">
+        <strong>Limitacion del PoC</strong>
+        Esta pagina describe el comportamiento observado en el repositorio local. No es una afirmacion normativa
+        de EULYNX, EN 50159, RaSTA o SIL4.
+      </div>
+    </div>
+  </section>
+
+  <div class="layout">
+    <aside class="sidebar">
+      <section class="panel search">
+        <h2>Explorar</h2>
+        <label>
+          Buscar funcion, fichero o concepto
+          <input id="search" type="search" placeholder="Ej: sr_connect, PDI, signal vector">
+        </label>
+      </section>
+      <section class="panel">
+        <h2>Filtros</h2>
+        <div id="filters" class="filter" aria-label="Filtros de tipo">
+          <button class="chip-button is-active" data-kind="all" type="button">Todo</button>
+          <button class="chip-button" data-kind="main" type="button">main</button>
+          <button class="chip-button" data-kind="callback" type="button">callback</button>
+          <button class="chip-button" data-kind="cloud" type="button">Cloud IXL</button>
+          <button class="chip-button" data-kind="sci" type="button">SCI-LS/ICD</button>
+          <button class="chip-button" data-kind="rasta" type="button">RaSTA</button>
+          <button class="chip-button" data-kind="terminal" type="button">terminal</button>
+        </div>
+      </section>
+      <section class="panel">
+        <h2>Lectura correcta</h2>
+        <div class="stat-list">
+          <div class="stat"><span>Linea base</span><strong>working tree actual</strong></div>
+          <div class="stat"><span>Centro del sistema</span><strong>Cloud IXL</strong></div>
+          <div class="stat"><span>Payload</span><strong>SCI-LS / ICD</strong></div>
+          <div class="stat"><span>Transporte</span><strong>RaSTA-like/RaSTA</strong></div>
+        </div>
+      </section>
+    </aside>
+
+    <div class="content">
+      <section id="dependencias" class="panel">
+        <div class="section-title">
+          <div>
+            <h2>Dependencias desplegadas</h2>
+            <p>
+              Cada tarjeta muestra entrada, llamadas descendentes, condiciones de salida y punto terminal visible.
+              Las referencias de linea son aproximadas al estado inspeccionado del fichero.
+            </p>
+          </div>
+        </div>
+        <div id="callTree" class="call-tree"></div>
+      </section>
+
+      <section id="terminales" class="panel">
+        <div class="section-title">
+          <div>
+            <h2>Ramas terminales de <code>main()</code></h2>
+            <p>Estos son los finales observables del programa desde el flujo de <code>int main(void)</code>.</p>
+          </div>
+        </div>
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>Rama</th>
+                <th>Condicion</th>
+                <th>Accion final</th>
+                <th>Codigo de salida</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td>PDI no establecido</td>
+                <td><code>wait_for_pdi_establishment()</code> devuelve estado distinto de <code>PDI_ESTABLISHED</code>.</td>
+                <td><code>cleanup_pdi_resources(&h)</code>.</td>
+                <td><code>return 1</code></td>
+              </tr>
+              <tr>
+                <td>Error enviando luminosidad</td>
+                <td><code>cloud_ixl_scils_send_luminosity()</code> devuelve build/send error o valor desconocido.</td>
+                <td>Limpieza de RaSTA y SCI-LS.</td>
+                <td><code>return 1</code></td>
+              </tr>
+              <tr>
+                <td>Usuario pide salir</td>
+                <td><code>receive_route_request()</code> devuelve <code>ROUTE_COMMAND_QUIT</code>.</td>
+                <td>Sale del bucle, limpia recursos.</td>
+                <td><code>return exit_code</code>, normalmente <code>0</code></td>
+              </tr>
+              <tr>
+                <td>No se puede construir vector esperado</td>
+                <td><code>cloud_ixl_build_signal_vector()</code> devuelve <code>false</code>.</td>
+                <td><code>exit_code = 1</code>, rompe bucle, limpia recursos.</td>
+                <td><code>1</code></td>
+              </tr>
+              <tr>
+                <td>No se puede enviar aspecto</td>
+                <td><code>cloud_ixl_scils_send_signal_aspect()</code> devuelve build/send error.</td>
+                <td><code>fail_pending_signal_confirmation()</code>, rompe bucle, limpia recursos.</td>
+                <td><code>1</code></td>
+              </tr>
+              <tr>
+                <td>Confirmacion negativa</td>
+                <td>Timeout, mismatch, execution error, timeout RaSTA o cambio de conexion durante <code>PDI_WAIT_CONFIRMATION</code>.</td>
+                <td><code>exit_code = 1</code>, limpia recursos.</td>
+                <td><code>1</code></td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </section>
+
+      <section class="panel">
+        <div class="section-title">
+          <div>
+            <h2>Riesgos y limites del flujo actual</h2>
+            <p>Observaciones de diseno derivadas del codigo, sin proponer cambios automaticos.</p>
+          </div>
+        </div>
+        <div class="risk-list">
+          <div class="risk">
+            <strong>El PDI depende de callbacks asincronos.</strong>
+            <code>main()</code> avanza por condicion, pero los estados se modifican desde callbacks que corren en hilos creados por RaSTA.
+            Por eso el mutex y la condicion son parte central del flujo, no un detalle accesorio.
+          </div>
+          <div class="risk">
+            <strong>La confirmacion de aspecto usa un camino especial.</strong>
+            Durante <code>PDI_WAIT_CONFIRMATION</code>, <code>on_rasta_receive()</code> intercepta
+            <code>SCILS_MESSAGE_TYPE_SIGNAL_ASPECT_STATUS</code>, parsea el vector ICD de 18 bytes y compara con
+            <code>expected_signal_vector</code>. Fuera de esa espera, el mensaje cae al manejador generico SCI-LS.
+          </div>
+          <div class="risk">
+            <strong>La liberacion solo cambia estado local si hubo confirmacion OK.</strong>
+            Si la orden era release y la confirmacion coincide, se llama a <code>release_route()</code>; su retorno se descarta.
+            Eso es un hecho del flujo actual, no una afirmacion de validez operacional.
+          </div>
+        </div>
+      </section>
+
+      <section id="fuentes" class="panel">
+        <div class="section-title">
+          <div>
+            <h2>Fuentes inspeccionadas</h2>
+            <p>Ficheros usados para construir esta representacion.</p>
+          </div>
+        </div>
+        <div class="source-grid">
+          <article class="source-card">
+            <h3>Cloud IXL principal</h3>
+            <code>src/cloud_ixl/c/main.c</code>
+            <p>Arranque, callbacks, PDI, bucle de ordenes, confirmacion y cleanup.</p>
+          </article>
+          <article class="source-card">
+            <h3>Cloud IXL dominio</h3>
+            <code>src/cloud_ixl/c/cloud_ixl_state.c</code>
+            <code>src/cloud_ixl/c/cloud_ixl_logic.c</code>
+            <code>src/cloud_ixl/c/cloud_ixl_output.c</code>
+            <code>src/cloud_ixl/c/cloud_ixl_input.c</code>
+            <code>src/cloud_ixl/c/cloud_ixl_routes.c</code>
+            <p>Estado local, decision de ruta, entrada CLI, tabla de rutas y traduccion a aspecto.</p>
+          </article>
+          <article class="source-card">
+            <h3>SCI-LS e ICD</h3>
+            <code>src/cloud_ixl/c/cloud_ixl_scils_adapter.c</code>
+            <code>src/sci/c/scils.c</code>
+            <code>src/sci/c/sci.c</code>
+            <code>src/sci/c/sci_telegram_factory.c</code>
+            <code>src/sci/c/scils_telegram_factory.c</code>
+            <code>src/sci_ls_icd/c/sci_ls_icd.c</code>
+            <p>Construccion, codificacion, parseo, envio y callbacks de payload SCI-LS/ICD.</p>
+          </article>
+          <article class="source-card">
+            <h3>RaSTA</h3>
+            <code>src/rasta/c/rasta_new.c</code>
+            <code>src/rasta/c/rastahandle.c</code>
+            <code>src/rasta/headers/rasta_new.h</code>
+            <p>Inicializacion, conexion, envio, recepcion, notificaciones y limpieza del transporte.</p>
+          </article>
+        </div>
+      </section>
+    </div>
+  </div>
+</main>
+
+<footer>
+  Documento generado manualmente desde el codigo inspeccionado en el repositorio local.
+  Distingue hechos observados, inferencias razonables y limites del PoC; no sustituye tests ni documentacion normativa.
+</footer>
+
+<script>
+const nodes = [
+  {
+    kind: "main",
+    title: "Entrada de main y datos locales",
+    file: "src/cloud_ixl/c/main.c:701",
+    code: "int main(void)",
+    does: "Declara IXL_state, receiver, rasta_handle y dos canales RastaIPData.",
+    chain: ["main", "state", "receiver=LS_OC", "rasta_handle h", "channels[2]"],
+    terminal: "Datos preparados para inicializar RaSTA y SCI-LS.",
+    branches: [
+      "Canal 0: 127.0.0.1:8888.",
+      "Canal 1: 127.0.0.1:8889.",
+      "Receptor SCI-LS fijo: OC_SCI_NAME, valor LS_OC."
+    ]
+  },
+  {
+    kind: "rasta",
+    title: "Inicializacion RaSTA",
+    file: "src/cloud_ixl/c/main.c:715, src/rasta/c/rasta_new.c:1581",
+    code: "sr_init_handle(&h, CONFIG_PATH)",
+    does: "Carga configuracion, prepara handle, mux de redundancia, hashing MD4 y arranca hilos RaSTA.",
+    chain: ["sr_init_handle", "rasta_handle_init", "config_load", "redundancy_mux_init_", "rasta_md4_set_key", "sr_start"],
+    terminal: "RaSTA queda con receive_thread, heartbeat_thread y send_thread arrancados.",
+    branches: [
+      "CONFIG_PATH apunta a config/rasta_client1_local.cfg.",
+      "sr_start abre el mux y llama a sr_start_receiving, sr_start_heartbeats y sr_start_sending.",
+      "Si la configuracion de logger es invalida, rasta_handle_init puede terminar con exit(1)."
+    ]
+  },
+  {
+    kind: "callback",
+    title: "Registro de callbacks RaSTA",
+    file: "src/cloud_ixl/c/main.c:716",
+    code: "h.notifications.* = on_*",
+    does: "Conecta eventos RaSTA con funciones locales de main.c.",
+    chain: ["on_receive", "on_handshake_complete", "on_connection_state_change", "on_heartbeat_timeout"],
+    terminal: "Los eventos RaSTA reentran en main.c desde hilos de notificacion.",
+    branches: [
+      "on_receive llama a on_rasta_receive.",
+      "on_handshake_complete llama a on_rasta_handshake.",
+      "on_connection_state_change llama a on_connection_change.",
+      "on_heartbeat_timeout llama a on_timeout."
+    ]
+  },
+  {
+    kind: "sci",
+    title: "Inicializacion SCI-LS",
+    file: "src/cloud_ixl/c/main.c:721, src/sci/c/scils.c:38",
+    code: "scils = scils_init(&h, IXL_SCI_NAME)",
+    does: "Crea la instancia SCI-LS encima del handle RaSTA.",
+    chain: ["scils_init", "rmalloc(scils_t)", "copy sciName", "hashmap_new", "notifications=NULL"],
+    terminal: "scils apunta a una instancia SCI-LS con nombre IXL_CENTRAL.",
+    branches: [
+      "Guarda puntero al rasta_handle.",
+      "Inicializa mapa SCI name -> RaSTA ID.",
+      "Inicializa todos los callbacks SCI-LS a NULL antes de que main los asigne."
+    ]
+  },
+  {
+    kind: "sci",
+    title: "Registro del OC en el mapa SCI-LS",
+    file: "src/cloud_ixl/c/main.c:722, src/sci/c/scils.c:289",
+    code: "scils_register_sci_name(scils, OC_SCI_NAME, OC_RASTA_ID)",
+    does: "Mapea LS_OC al RaSTA ID 0x61 para poder enviar telegramas al Object Controller.",
+    chain: ["scils_register_sci_name", "sci_set_sender(tmp)", "sci_get_name_string", "hashmap_get", "hashmap_put"],
+    terminal: "El envio SCI-LS podra resolver receiver LS_OC hacia RaSTA remote_id 0x61.",
+    branches: [
+      "Si el nombre ya existe, no lo inserta otra vez.",
+      "Si hashmap_put falla, libera key y retorna sin propagar error a main."
+    ]
+  },
+  {
+    kind: "callback",
+    title: "Registro de callbacks SCI-LS",
+    file: "src/cloud_ixl/c/main.c:724",
+    code: "scils->notifications.* = on_*",
+    does: "Conecta eventos SCI-LS genericos con manejadores PDI locales.",
+    chain: ["on_status_begin_received", "on_signal_aspect_status_received", "on_brightness_status_received", "on_status_finish_received"],
+    terminal: "scils_on_rasta_receive podra invocar callbacks de main.c cuando el mensaje no sea interceptado antes.",
+    branches: [
+      "Status begin -> on_initialisation_start.",
+      "Signal aspect status generico -> on_aspect_status.",
+      "Brightness status -> registrado, aunque main.c tambien intercepta ese tipo explicitamente.",
+      "Status finish -> on_initialisation_completed."
+    ]
+  },
+  {
+    kind: "main",
+    title: "Estado PDI inicial y conexion",
+    file: "src/cloud_ixl/c/main.c:729",
+    code: "set_pdi_state(PDI_WAIT_RASTA_HANDSHAKE); sr_connect(&h, OC_RASTA_ID, channels)",
+    does: "Marca que se espera el handshake RaSTA y solicita conexion al OC.",
+    chain: ["set_pdi_state", "pthread_mutex_lock", "set_pdi_state_locked", "pthread_cond_broadcast", "sr_connect"],
+    terminal: "main entra en espera de establecimiento PDI.",
+    branches: [
+      "set_pdi_state protege pdi_state con mutex.",
+      "El broadcast despierta esperas si existieran.",
+      "sr_connect crea la conexion cliente y emite ConReq por el mux."
+    ]
+  },
+  {
+    kind: "rasta",
+    title: "Detalle de sr_connect",
+    file: "src/rasta/c/rasta_new.c:1612",
+    code: "sr_connect(struct rasta_handle *handle, unsigned long id, struct RastaIPData *channels)",
+    does: "Construye la conexion RaSTA hacia el OC y dispara el primer cambio de estado.",
+    chain: ["sr_connect", "redundancy_mux_add_channel", "sr_init_connection", "get_initial_seq_num", "createConnectionRequest", "redundancy_mux_send", "rastalist_addConnection", "fire_on_connection_state_change"],
+    terminal: "Se lanza callback on_connection_change con estado START.",
+    branches: [
+      "Si ya existe conexion con el remote_id, retorna sin crear otra.",
+      "La nueva conexion empieza con rol cliente.",
+      "Tras enviar ConReq incrementa sn_t y pone current_state=RASTA_CONNECTION_START."
+    ]
+  },
+  {
+    kind: "callback",
+    title: "Cambio de estado RaSTA",
+    file: "src/cloud_ixl/c/main.c:492",
+    code: "on_connection_change(result)",
+    does: "Imprime estado RaSTA y ajusta pdi_state cuando CLOSED, DOWN o START afectan a la sesion.",
+    chain: ["fire_on_connection_state_change", "on_constatechange_call", "on_connection_change", "set_pdi_state_locked"],
+    terminal: "Actualiza PDI o deja solo traza segun el estado RaSTA.",
+    branches: [
+      "CLOSED: si esperaba confirmacion, falla confirmacion; si no, PDI_DISCONNECTED.",
+      "DOWN/START: si esperaba confirmacion, falla confirmacion; si no, PDI_WAIT_RASTA_HANDSHAKE.",
+      "UP, RETRREQ, RETRRUN: solo imprime el estado.",
+      "UNKNOWN: solo imprime UNKNOWN."
+    ]
+  },
+  {
+    kind: "main",
+    title: "Espera de establecimiento PDI",
+    file: "src/cloud_ixl/c/main.c:733, src/cloud_ixl/c/main.c:179",
+    code: "wait_for_pdi_establishment()",
+    does: "Espera con deadline global hasta que los callbacks lleven el PDI a ESTABLISHED o FAILED.",
+    chain: ["set_global_timeout_deadline", "pthread_cond_timedwait", "is_pdi_establishment_terminal"],
+    terminal: "Devuelve PDI_ESTABLISHED o PDI_FAILED.",
+    branches: [
+      "Timeout: imprime aviso y pone PDI_FAILED.",
+      "Error de pthread_cond_timedwait: imprime codigo y pone PDI_FAILED.",
+      "Cambio a PDI_ESTABLISHED: sale correctamente."
+    ]
+  },
+  {
+    kind: "callback",
+    title: "Handshake RaSTA completado",
+    file: "src/cloud_ixl/c/main.c:294",
+    code: "on_rasta_handshake(result)",
+    does: "Valida el remote_id y envia la peticion de version SCI-LS/PDI.",
+    chain: ["fire_on_handshake_complete", "on_handshake_complete_call", "on_rasta_handshake", "scils_send_version_request"],
+    terminal: "PDI queda esperando version response o falla.",
+    branches: [
+      "Si remote_id != 0x61, imprime error y PDI_FAILED.",
+      "Si remote_id coincide, PDI_WAIT_VERSION_RESPONSE.",
+      "Si scils_send_version_request no devuelve SUCCESS, PDI_FAILED."
+    ]
+  },
+  {
+    kind: "sci",
+    title: "Envio de version request",
+    file: "src/sci/c/scils.c:68, src/sci/c/sci_telegram_factory.c:19",
+    code: "scils_send_version_request(scils, OC_SCI_NAME, PDI_VERSION)",
+    does: "Crea un telegrama SCI version request y lo entrega al envio SCI-LS generico.",
+    chain: ["scils_send_version_request", "sci_create_version_request", "sci_create_base_telegram", "scils_send_telegram", "sr_send"],
+    terminal: "Telegrama version request queda en cola RaSTA si la conexion esta UP.",
+    branches: [
+      "PDI_VERSION es 0x05.",
+      "sci_create_base_telegram rellena protocol_type, message_type, sender, receiver y payload vacio.",
+      "scils_send_telegram codifica SCI y resuelve LS_OC en el hashmap."
+    ]
+  },
+  {
+    kind: "callback",
+    title: "Entrada comun de recepcion RaSTA",
+    file: "src/cloud_ixl/c/main.c:330",
+    code: "on_rasta_receive(result)",
+    does: "Extrae bytes RaSTA, decodifica SCI, valida cabecera OC->IXL y enruta segun message_type.",
+    chain: ["sr_get_received_data", "sci_decode_telegram", "is_expected_oc_to_ixl_header", "sci_get_message_type"],
+    terminal: "Despacha a parser ICD especifico, handler SCI-LS generico o fallo PDI.",
+    branches: [
+      "Si sci_decode_telegram devuelve NULL, imprime y retorna sin cambiar PDI.",
+      "Si cabecera no es SCI-LS LS_OC -> IXL_CENTRAL, libera telegrama y PDI_FAILED.",
+      "Si status begin/finish tiene payload no vacio, libera telegrama y PDI_FAILED.",
+      "Calcula waiting_for_signal_confirmation bajo mutex para decidir si intercepta aspect status."
+    ]
+  },
+  {
+    kind: "sci",
+    title: "Version response recibida",
+    file: "src/cloud_ixl/c/main.c:369, src/sci_ls_icd/c/sci_ls_icd.c:158",
+    code: "sci_ls_icd_parse_version_response(telegram, &response)",
+    does: "Parsea version response como payload ICD de tres bytes.",
+    chain: ["on_rasta_receive", "sci_ls_icd_parse_version_response", "handle_icd_version_response"],
+    terminal: "Si parsea bien, entra a handle_icd_version_response.",
+    branches: [
+      "Valida protocolo SCI_PROTOCOL_LS.",
+      "Valida message_type SCI_MESSAGE_TYPE_VERSION_RESPONSE.",
+      "Valida payload size SCI_LS_ICD_VERSION_RESPONSE_PAYLOAD_SIZE.",
+      "Valida result como version equal/not equal."
+    ]
+  },
+  {
+    kind: "callback",
+    title: "Validacion de version PDI",
+    file: "src/cloud_ixl/c/main.c:595",
+    code: "handle_icd_version_response(scils, &response)",
+    does: "Exige estado PDI_WAIT_VERSION_RESPONSE y compara requested/supported/result con PDI_VERSION.",
+    chain: ["require_pdi_state", "compare PDI_VERSION", "set_pdi_state(PDI_WAIT_INITIALISATION_START)", "scils_send_status_request"],
+    terminal: "Envia status request o marca PDI_FAILED.",
+    branches: [
+      "Estado incorrecto: require_pdi_state marca PDI_FAILED.",
+      "Version incompatible: PDI_FAILED.",
+      "Envio status request fallido: PDI_FAILED.",
+      "Exito: espera status begin."
+    ]
+  },
+  {
+    kind: "sci",
+    title: "Envio de status request",
+    file: "src/sci/c/scils.c:83, src/sci/c/sci_telegram_factory.c:45",
+    code: "scils_send_status_request(ls, OC_SCI_NAME)",
+    does: "Crea un telegrama SCI status request sin payload y lo envia por SCI-LS/RaSTA.",
+    chain: ["scils_send_status_request", "sci_create_status_request", "sci_create_base_telegram", "scils_send_telegram", "sr_send"],
+    terminal: "Solicitud de estado inicial queda en cola RaSTA si la conexion esta UP.",
+    branches: [
+      "El resultado SUCCESS permite esperar status begin.",
+      "Cualquier codigo distinto de SUCCESS hace PDI_FAILED desde main.c."
+    ]
+  },
+  {
+    kind: "sci",
+    title: "Status begin recibido por fallback SCI-LS",
+    file: "src/cloud_ixl/c/main.c:487, src/sci/c/scils.c:230",
+    code: "scils_on_rasta_receive(scils, message)",
+    does: "Para tipos no interceptados por main.c, decodifica SCI y llama callbacks SCI-LS registrados.",
+    chain: ["on_rasta_receive fallback", "scils_on_rasta_receive", "sci_decode_telegram", "scils_register_sci_name", "switch message_type", "on_status_begin_received"],
+    terminal: "Invoca on_initialisation_start.",
+    branches: [
+      "Status begin es mensaje comun con payload vacio ya validado por main.c.",
+      "scils_on_rasta_receive vuelve a decodificar el telegrama desde message.appMessage.",
+      "Tambien actualiza el mapa SCI name -> RaSTA ID si hace falta."
+    ]
+  },
+  {
+    kind: "callback",
+    title: "Inicio de transferencia de estado inicial",
+    file: "src/cloud_ixl/c/main.c:627",
+    code: "on_initialisation_start(ls, sender)",
+    does: "Transiciona de espera de inicio a recepcion de estado inicial.",
+    chain: ["on_initialisation_start", "transition_pdi_state(PDI_WAIT_INITIALISATION_START, PDI_RECEIVING_INITIAL_STATUS)"],
+    terminal: "PDI queda en PDI_RECEIVING_INITIAL_STATUS o PDI_FAILED.",
+    branches: [
+      "Si el estado esperado no coincide, transition_pdi_state fuerza PDI_FAILED.",
+      "Si coincide, queda listo para recibir estados iniciales."
+    ]
+  },
+  {
+    kind: "callback",
+    title: "Aspect status inicial generico",
+    file: "src/cloud_ixl/c/main.c:642, src/sci/c/scils.c:184",
+    code: "on_aspect_status(scils, sender, aspect)",
+    does: "Durante estado inicial, valida que PDI este recibiendo status y registra el aspecto actual.",
+    chain: ["scils_on_rasta_receive", "handle_signal_aspect_status", "scils_parse_signal_aspect_status_payload", "on_aspect_status", "require_pdi_state"],
+    terminal: "Mantiene PDI_RECEIVING_INITIAL_STATUS o marca PDI_FAILED.",
+    branches: [
+      "Este camino usa el parser SCI-LS generico de 7 bytes.",
+      "No es el mismo camino que la confirmacion de comando, que usa vector ICD de 18 bytes.",
+      "Estado incorrecto: require_pdi_state fuerza PDI_FAILED."
+    ]
+  },
+  {
+    kind: "callback",
+    title: "Brightness status",
+    file: "src/cloud_ixl/c/main.c:394, src/cloud_ixl/c/main.c:654",
+    code: "on_brightness_status(scils, telegram->sender, luminosity)",
+    does: "Parsea luminosidad ICD y acepta el mensaje solo en estados PDI permitidos.",
+    chain: ["sci_ls_icd_parse_luminosity_status", "on_brightness_status", "is_luminosity_status_allowed"],
+    terminal: "Imprime luminosidad o marca PDI_FAILED.",
+    branches: [
+      "Estados permitidos: RECEIVING_INITIAL_STATUS, ESTABLISHED, WAIT_CONFIRMATION, COMMAND_CONFIRMED.",
+      "Payload invalido: fail_pending_signal_confirmation.",
+      "Estado no permitido: PDI_FAILED."
+    ]
+  },
+  {
+    kind: "callback",
+    title: "Fin de inicializacion PDI",
+    file: "src/cloud_ixl/c/main.c:684",
+    code: "on_initialisation_completed(ls, sender)",
+    does: "Transiciona de RECEIVING_INITIAL_STATUS a ESTABLISHED.",
+    chain: ["scils_on_rasta_receive", "on_status_finish_received", "on_initialisation_completed", "transition_pdi_state"],
+    terminal: "PDI_ESTABLISHED despierta wait_for_pdi_establishment.",
+    branches: [
+      "Si status finish llega en estado incorrecto, PDI_FAILED.",
+      "Si transiciona, imprime initialisation completed."
+    ]
+  },
+  {
+    kind: "terminal",
+    title: "Fallo de establecimiento PDI",
+    file: "src/cloud_ixl/c/main.c:735, src/cloud_ixl/c/main.c:54",
+    code: "if (established_state != PDI_ESTABLISHED) cleanup_pdi_resources(&h); return 1;",
+    does: "Evita enviar comandos si no se completo el PDI.",
+    chain: ["wait_for_pdi_establishment", "cleanup_pdi_resources", "sr_cleanup", "scils_cleanup", "return 1"],
+    terminal: "Programa termina con codigo 1.",
+    branches: [
+      "sr_cleanup cancela hilos RaSTA y libera recursos RaSTA.",
+      "scils_cleanup libera hashmap, sciName e instancia SCI-LS si scils no es NULL."
+    ]
+  },
+  {
+    kind: "cloud",
+    title: "Inicializacion del estado Cloud IXL",
+    file: "src/cloud_ixl/c/main.c:745, src/cloud_ixl/c/cloud_ixl_state.c:6",
+    code: "cloud_ixl_state_init(&state)",
+    does: "Inicializa el estado local del enclavamiento simulado.",
+    chain: ["cloud_ixl_state_init", "signals=PARADA", "points=LEFT", "routes=FREE", "sections=S_FREE"],
+    terminal: "IXL_state queda listo para evaluar rutas.",
+    branches: [
+      "Si state es NULL, imprime error y retorna.",
+      "En main se pasa una variable local valida."
+    ]
+  },
+  {
+    kind: "cloud",
+    title: "Envio inicial de luminosidad",
+    file: "src/cloud_ixl/c/main.c:747, src/cloud_ixl/c/cloud_ixl_scils_adapter.c:139",
+    code: "cloud_ixl_scils_send_luminosity(scils, receiver, DEFAULT_SIGNAL_LUMINOSITY)",
+    does: "Construye y envia un cambio de brillo SCI-LS antes de aceptar ordenes de ruta.",
+    chain: ["cloud_ixl_scils_send_luminosity", "is_valid_sci_name", "is_valid_icd_luminosity", "scils_create_change_brightness", "scils_send_telegram", "rfree"],
+    terminal: "Exito continua al bucle; error limpia y retorna 1.",
+    branches: [
+      "DEFAULT_SIGNAL_LUMINOSITY es SCILS_BRIGHTNESS_DAY.",
+      "Build error: scils NULL, nombres invalidos, luminosidad invalida o telegrama NULL.",
+      "Send error: scils_send_telegram devuelve codigo distinto de SUCCESS."
+    ]
+  },
+  {
+    kind: "main",
+    title: "Bucle de ordenes",
+    file: "src/cloud_ixl/c/main.c:775",
+    code: "while (exit_code == 0)",
+    does: "Procesa comandos CLI hasta quit, error de envio o fallo de confirmacion.",
+    chain: ["receive_route_request", "decision", "ls_request_command", "build expected vector", "send aspect", "wait confirmation"],
+    terminal: "Sale por quit o por exit_code=1.",
+    branches: [
+      "ROUTE_COMMAND_QUIT rompe el bucle sin modificar exit_code.",
+      "ROUTE_COMMAND_RELEASE fuerza decision STOP antes de enviar comando.",
+      "ROUTE_COMMAND_REQUEST evalua estado de ruta con request_route_decision."
+    ]
+  },
+  {
+    kind: "cloud",
+    title: "Entrada de comando CLI",
+    file: "src/cloud_ixl/c/cloud_ixl_input.c:54",
+    code: "receive_route_request()",
+    does: "Lee comando y ruta desde stdin.",
+    chain: ["receive_route_request", "fgets command", "first_selection_char", "read_route_id", "fgets route"],
+    terminal: "Devuelve RouteRequest con command y route_id.",
+    branches: [
+      "EOF en comando: devuelve ROUTE_COMMAND_QUIT.",
+      "q/Q: devuelve quit sin pedir ruta.",
+      "l/L: release; r/R/default: request.",
+      "Ruta 2/C selecciona RUTA_AC; 1/A/B/default selecciona RUTA_AB."
+    ]
+  },
+  {
+    kind: "cloud",
+    title: "Decision de ruta request",
+    file: "src/cloud_ixl/c/cloud_ixl_logic.c:102",
+    code: "request_route_decision(&state, r_request.route_id)",
+    does: "Evalua si una ruta puede reservarse y devuelve GO o STOP.",
+    chain: ["request_route_decision", "get_route_state", "if FREE set RESERVED", "return GO else STOP"],
+    terminal: "Decision GO reserva localmente; STOP no reserva.",
+    branches: [
+      "Si get_route_state devuelve FREE, state->route[route_id]=RESERVED.",
+      "Cualquier otro estado produce STOP."
+    ]
+  },
+  {
+    kind: "cloud",
+    title: "Evaluacion detallada de ruta",
+    file: "src/cloud_ixl/c/cloud_ixl_logic.c:56",
+    code: "get_route_state(state, route_id)",
+    does: "Comprueba punteros, definicion de ruta, estado de ruta, secciones, conflictos y agujas.",
+    chain: ["cloud_ixl_get_route_definition", "route_state_blocks", "section checks", "get_conflicting_route_state", "point checks"],
+    terminal: "Devuelve FREE, RESERVED, OCCUPIED, WRONG_POINTS o INVALID.",
+    branches: [
+      "state NULL o route NULL: INVALID.",
+      "Ruta ya RESERVED/REQUESTED/OCCUPIED: devuelve su estado.",
+      "Seccion requerida no S_FREE: OCCUPIED.",
+      "Conflicto con otra ruta bloqueante que comparte secciones: RESERVED.",
+      "Aguja en posicion distinta a la requerida: WRONG_POINTS.",
+      "Todo correcto: FREE."
+    ]
+  },
+  {
+    kind: "cloud",
+    title: "Tabla de rutas y conflictos",
+    file: "src/cloud_ixl/c/cloud_ixl_routes.c:4, src/cloud_ixl/c/cloud_ixl_logic.c:24",
+    code: "cloud_ixl_get_route_definition() + get_conflicting_route_state()",
+    does: "Consulta rutas RUTA_AB/RUTA_AC y detecta si comparten secciones con rutas bloqueantes.",
+    chain: ["route_definitions", "cloud_ixl_get_route_definition", "get_conflicting_route_state", "routes_share_section"],
+    terminal: "Entrega definicion o NULL; conflicto produce RESERVED.",
+    branches: [
+      "RUTA_AB requiere CV_01, CV_02 y P_01 LEFT.",
+      "RUTA_AC requiere CV_01, CV_03 y P_01 RIGHT.",
+      "Ambas comparten CV_01, por lo que una ruta bloqueante puede impedir la otra."
+    ]
+  },
+  {
+    kind: "cloud",
+    title: "Decision de release",
+    file: "src/cloud_ixl/c/main.c:789",
+    code: "release_requested ? decision = STOP : request_route_decision(...)",
+    does: "Para release, el comando enviado al LS es PARADA y la liberacion local se pospone hasta confirmacion OK.",
+    chain: ["ROUTE_COMMAND_RELEASE", "decision=STOP", "send PARADA", "wait confirmation", "release_route"],
+    terminal: "La ruta solo se libera si la confirmacion devuelve true.",
+    branches: [
+      "El release no evalua get_route_state antes del envio.",
+      "release_route se ejecuta despues de wait_for_signal_confirmation()."
+    ]
+  },
+  {
+    kind: "cloud",
+    title: "Traduccion decision -> aspecto de senal",
+    file: "src/cloud_ixl/c/cloud_ixl_output.c:4",
+    code: "ls_request_command(decision)",
+    does: "Convierte la decision de ruta en aspecto solicitado al Light Signal.",
+    chain: ["ls_request_command", "GO=>VIA_LIBRE", "STOP=>PARADA", "default=>PARADA"],
+    terminal: "Devuelve SignalAspect para construir el vector SCI-LS.",
+    branches: [
+      "GO produce VIA_LIBRE.",
+      "STOP o valor desconocido produce PARADA."
+    ]
+  },
+  {
+    kind: "util",
+    title: "Formato de decision",
+    file: "src/cloud_ixl/c/cloud_ixl_format.c:103",
+    code: "decision_name_to_string(decision)",
+    does: "Convierte decision GO/STOP en texto para trazas.",
+    chain: ["decision_name_to_string", "switch RouteDecision", "printf"],
+    terminal: "Solo afecta observabilidad por consola.",
+    branches: [
+      "STOP -> STOP.",
+      "GO -> GO.",
+      "Default -> UNKNOWN_DECISION."
+    ]
+  },
+  {
+    kind: "cloud",
+    title: "Construccion del vector esperado",
+    file: "src/cloud_ixl/c/main.c:800, src/cloud_ixl/c/cloud_ixl_scils_adapter.c:26",
+    code: "cloud_ixl_build_signal_vector(aspect, expected_signal_vector.bytes)",
+    does: "Codifica SignalAspect en el vector ICD de 18 bytes que despues se comparara con el feedback.",
+    chain: ["cloud_ixl_build_signal_vector", "validate vector != NULL", "validate aspect range", "memcpy static vector"],
+    terminal: "expected_signal_vector queda preparado o main sale con error.",
+    branches: [
+      "Aspect fuera de VIA_LIBRE..APAGADA: false.",
+      "Vector NULL: false.",
+      "Exito: copia SCI_LS_ICD_SIGNAL_VECTOR_SIZE bytes."
+    ]
+  },
+  {
+    kind: "main",
+    title: "Entrada a espera de confirmacion",
+    file: "src/cloud_ixl/c/main.c:806",
+    code: "command_confirmation_done=false; command_confirmation_ok=false; PDI_WAIT_CONFIRMATION",
+    does: "Prepara variables compartidas antes de enviar el comando al LS.",
+    chain: ["pthread_mutex_lock", "reset flags", "set_pdi_state_locked(PDI_WAIT_CONFIRMATION)", "pthread_mutex_unlock"],
+    terminal: "El callback de recepcion sabra que debe comparar signal aspect status contra expected_signal_vector.",
+    branches: [
+      "El estado se cambia antes de enviar el telegrama.",
+      "El broadcast ocurre dentro de set_pdi_state_locked."
+    ]
+  },
+  {
+    kind: "cloud",
+    title: "Envio de aspecto de senal",
+    file: "src/cloud_ixl/c/main.c:812, src/cloud_ixl/c/cloud_ixl_scils_adapter.c:116",
+    code: "cloud_ixl_scils_send_signal_aspect(scils, receiver, aspect)",
+    does: "Construye telegrama SCI-LS show signal aspect con vector ICD y lo envia por SCI-LS/RaSTA.",
+    chain: ["cloud_ixl_scils_send_signal_aspect", "cloud_ixl_create_signal_aspect_telegram", "cloud_ixl_build_signal_vector", "sci_create_base_telegram", "scils_send_telegram", "rfree"],
+    terminal: "SUCCESS_SCILS permite esperar confirmacion; error falla la confirmacion pendiente.",
+    branches: [
+      "scils NULL o receiver NULL: build error.",
+      "Aspect invalido o nombre SCI invalido: build error.",
+      "scils_send_telegram no SUCCESS: send error.",
+      "Exito: telegrama liberado con rfree tras enviar."
+    ]
+  },
+  {
+    kind: "sci",
+    title: "Envio SCI-LS generico",
+    file: "src/sci/c/scils.c:14, src/sci/c/sci.c:34",
+    code: "scils_send_telegram(scils, telegram)",
+    does: "Codifica telegrama SCI, resuelve receptor SCI a RaSTA ID y llama a sr_send.",
+    chain: ["sci_encode_telegram", "sci_get_name_string(receiver)", "hashmap_get", "allocateRastaMessageData", "sr_send", "freeRastaMessageData"],
+    terminal: "SUCCESS si el SCI name existe en el mapa; UNKNOWN_SCI_NAME si falta.",
+    branches: [
+      "sci_encode_telegram concatena protocolo, tipo, sender, receiver y payload.",
+      "Si hashmap_get devuelve MAP_MISSING, retorna UNKNOWN_SCI_NAME sin llamar a sr_send.",
+      "scils_send_telegram no conoce si sr_send realmente envio por red; delega en la cola RaSTA."
+    ]
+  },
+  {
+    kind: "rasta",
+    title: "Cola de envio RaSTA",
+    file: "src/rasta/c/rasta_new.c:1664",
+    code: "sr_send(h, remote_id, app_messages)",
+    does: "Busca conexion remota, valida estado y mete mensajes de aplicacion en fifo_send.",
+    chain: ["rastalist_getConnectionByRemote", "pthread_mutex_lock", "state check", "fifo_push(connection->fifo_send)", "send_thread"],
+    terminal: "El hilo de envio RaSTA procesa la cola y usa redundancy_mux_send.",
+    branches: [
+      "Si no hay conexion, retorna sin error hacia scils_send_telegram.",
+      "Si estado UP, encola mensajes.",
+      "Si CLOSED/DOWN, cambia a CLOSED y dispara connection_state_change.",
+      "Si otro estado, envia DisconnectionRequest, cierra conexion y dispara callback."
+    ]
+  },
+  {
+    kind: "main",
+    title: "Espera de confirmacion de comando",
+    file: "src/cloud_ixl/c/main.c:839, src/cloud_ixl/c/main.c:252",
+    code: "wait_for_signal_confirmation()",
+    does: "Espera hasta que un callback marque command_confirmation_done o hasta timeout/fallo.",
+    chain: ["set_global_timeout_deadline", "pthread_cond_timedwait", "command_confirmation_done", "command_confirmation_ok"],
+    terminal: "Devuelve true si el feedback coincide; false si falla o expira.",
+    branches: [
+      "Timeout: imprime aviso, fail_pending_signal_confirmation_locked y false.",
+      "Error de condicion: fail_pending_signal_confirmation_locked y false.",
+      "Cambio de estado fuera de WAIT_CONFIRMATION termina la espera y devuelve command_confirmation_ok."
+    ]
+  },
+  {
+    kind: "callback",
+    title: "Confirmacion por signal aspect status",
+    file: "src/cloud_ixl/c/main.c:448, src/sci_ls_icd/c/sci_ls_icd.c:37",
+    code: "SCILS_MESSAGE_TYPE_SIGNAL_ASPECT_STATUS && waiting_for_signal_confirmation",
+    does: "Parsea el vector ICD reportado, lo compara con expected_signal_vector y finaliza la confirmacion.",
+    chain: ["sci_ls_icd_parse_signal_aspect_status", "memcmp(expected, reported)", "finish_signal_confirmation"],
+    terminal: "PDI_COMMAND_CONFIRMED si coincide; PDI_COMMAND_MISMATCH si no.",
+    branches: [
+      "Parse error: fail_pending_signal_confirmation.",
+      "memcmp != 0: imprime mismatch y command_confirmation_ok=false.",
+      "memcmp == 0: imprime match y command_confirmation_ok=true.",
+      "finish_signal_confirmation despierta la condicion."
+    ]
+  },
+  {
+    kind: "callback",
+    title: "Execution error desde OC",
+    file: "src/cloud_ixl/c/main.c:423, src/sci_ls_icd/c/sci_ls_icd.c:89",
+    code: "SCI_LS_ICD_MESSAGE_TYPE_EXECUTION_ERROR",
+    does: "Parsea error ICD, imprime codigo y vector actual, y falla la confirmacion pendiente.",
+    chain: ["sci_ls_icd_parse_execution_error", "handle_icd_execution_error", "execution_error_code_to_string", "print_signal_vector", "fail_pending_signal_confirmation"],
+    terminal: "PDI_FAILED y command_confirmation_ok=false.",
+    branches: [
+      "Payload invalido: fail_pending_signal_confirmation.",
+      "Codigos reconocidos: lamp failure, unknown/incomplete vector, invalid header/receiver/type, invalid luminosity.",
+      "Codigo desconocido en el switch de texto: unknown execution error."
+    ]
+  },
+  {
+    kind: "callback",
+    title: "Timeout RaSTA",
+    file: "src/cloud_ixl/c/main.c:547",
+    code: "on_timeout(result)",
+    does: "Falla cualquier confirmacion pendiente cuando RaSTA informa timeout de heartbeat.",
+    chain: ["fire_on_hearbeat_timeout", "on_heartbeat_timeout_call", "on_timeout", "fail_pending_signal_confirmation"],
+    terminal: "PDI_FAILED y condicion despertada.",
+    branches: [
+      "Imprime remote_id afectado.",
+      "No discrimina si main estaba fuera de WAIT_CONFIRMATION; fail_pending_signal_confirmation pone PDI_FAILED."
+    ]
+  },
+  {
+    kind: "cloud",
+    title: "Liberacion local de ruta",
+    file: "src/cloud_ixl/c/main.c:841, src/cloud_ixl/c/cloud_ixl_logic.c:113",
+    code: "release_route(&state, r_request.route_id)",
+    does: "Tras confirmacion OK de un release, intenta poner la ruta local a FREE.",
+    chain: ["release_route", "cloud_ixl_get_route_definition", "state checks", "state->route[route_id]=FREE"],
+    terminal: "Ruta local liberada o retorno false ignorado por main.",
+    branches: [
+      "state NULL o ruta NULL: false.",
+      "Ruta ya FREE: false.",
+      "Si estaba reservada u otro estado no FREE: se pone FREE y true."
+    ]
+  },
+  {
+    kind: "terminal",
+    title: "Cleanup final",
+    file: "src/cloud_ixl/c/main.c:847, src/cloud_ixl/c/main.c:54",
+    code: "cleanup_pdi_resources(&h); return exit_code;",
+    does: "Limpia transporte RaSTA e instancia SCI-LS antes de terminar.",
+    chain: ["cleanup_pdi_resources", "sr_cleanup", "scils_cleanup", "return exit_code"],
+    terminal: "Programa termina con 0 tras quit normal o 1 tras error del bucle.",
+    branches: [
+      "sr_cleanup pone running flags a 0, cancela hilos y libera recursos de conexiones.",
+      "scils_cleanup se ejecuta solo si scils != NULL.",
+      "scils se deja a NULL despues de liberar."
+    ]
+  }
+];
+
+const kindLabels = {
+  main: "main",
+  callback: "callback",
+  cloud: "Cloud IXL",
+  sci: "SCI-LS/ICD",
+  rasta: "RaSTA",
+  terminal: "terminal",
+  util: "util"
+};
+
+const spotlightScenes = [
+  {
+    label: "Arranque",
+    title: "main() prepara el sistema antes de tocar la red.",
+    text: "Declara el estado local, define LS_OC como receptor, inicializa canales localhost y registra callbacks RaSTA/SCI-LS.",
+    path: ["IXL_state", "RastaIPData[2]", "sr_init_handle", "scils_init"]
+  },
+  {
+    label: "PDI",
+    title: "El establecimiento real ocurre en callbacks.",
+    text: "sr_connect inicia la conexion, pero el avance a PDI_ESTABLISHED depende de handshake, version response, status begin y status finish.",
+    path: ["sr_connect", "on_rasta_handshake", "version request", "status request", "PDI_ESTABLISHED"]
+  },
+  {
+    label: "Orden",
+    title: "Cada comando de ruta se convierte en una orden de senal.",
+    text: "La CLI produce RouteRequest, la logica decide GO/STOP, output traduce a aspecto y el adaptador construye el vector ICD esperado.",
+    path: ["receive_route_request", "request_route_decision", "ls_request_command", "cloud_ixl_build_signal_vector"]
+  },
+  {
+    label: "Confirmacion",
+    title: "El feedback cierra el ciclo de seguridad del PoC.",
+    text: "Durante PDI_WAIT_CONFIRMATION, on_rasta_receive intercepta signal aspect status, parsea el vector reportado y lo compara con expected_signal_vector.",
+    path: ["PDI_WAIT_CONFIRMATION", "sci_ls_icd_parse_signal_aspect_status", "memcmp", "finish_signal_confirmation"]
+  }
+];
+
+const scrollProgress = document.getElementById("scrollProgress");
+const spotlight = document.getElementById("spotlight");
+const spotlightControls = document.getElementById("spotlightControls");
+const callTree = document.getElementById("callTree");
+const search = document.getElementById("search");
+const filters = document.getElementById("filters");
+let activeKind = "all";
+let activeSpotlight = 0;
+let spotlightTimer = null;
+
+function escapeHtml(value) {
+  return String(value)
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;");
+}
+
+function renderNodes() {
+  const query = search.value.trim().toLowerCase();
+  callTree.innerHTML = nodes.map((node, index) => {
+    const haystack = [
+      node.kind,
+      node.title,
+      node.file,
+      node.code,
+      node.does,
+      node.terminal,
+      node.chain.join(" "),
+      node.branches.join(" ")
+    ].join(" ").toLowerCase();
+    const hiddenByKind = activeKind !== "all" && node.kind !== activeKind;
+    const hiddenByQuery = query !== "" && !haystack.includes(query);
+    const hidden = hiddenByKind || hiddenByQuery ? " hidden" : "";
+    const open = index < 4 ? " open" : "";
+    return `
+      <details class="card reveal" data-kind="${escapeHtml(node.kind)}"${open}${hidden}>
+        <summary>
+          <div class="summary-main">
+            <div class="summary-title">
+              <span class="tag ${escapeHtml(node.kind)}">${escapeHtml(kindLabels[node.kind] || node.kind)}</span>
+              <strong>${escapeHtml(index + 1)}. ${escapeHtml(node.title)}</strong>
+            </div>
+            <div class="summary-code"><code>${escapeHtml(node.code)}</code></div>
+          </div>
+          <div class="summary-file">${escapeHtml(node.file)}</div>
+        </summary>
+        <div class="body">
+          <div class="fact-grid">
+            <div class="fact"><strong>Responsabilidad</strong>${escapeHtml(node.does)}</div>
+            <div class="fact"><strong>Punto terminal visible</strong>${escapeHtml(node.terminal)}</div>
+          </div>
+          <div>
+            <strong>Cadena principal</strong>
+            <div class="chain">${node.chain.map(step => `<span>${escapeHtml(step)}</span>`).join("")}</div>
+          </div>
+          <div>
+            <strong>Ramas y condiciones</strong>
+            <ul class="branch-list">${node.branches.map(item => `<li>${escapeHtml(item)}</li>`).join("")}</ul>
+          </div>
+        </div>
+      </details>`;
+  }).join("");
+  observeReveal();
+}
+
+function renderSpotlight() {
+  if (!spotlight || !spotlightControls) return;
+  spotlight.innerHTML = spotlightScenes.map((scene, index) => `
+    <article class="spotlight-card${index === activeSpotlight ? " is-active" : ""}" data-scene="${index}">
+      <span class="tag main">${escapeHtml(scene.label)}</span>
+      <h3>${escapeHtml(scene.title)}</h3>
+      <p>${escapeHtml(scene.text)}</p>
+      <div class="spotlight-path">${scene.path.map(step => `<span>${escapeHtml(step)}</span>`).join("")}</div>
+    </article>
+  `).join("");
+  spotlightControls.innerHTML = spotlightScenes.map((scene, index) => `
+    <button type="button" class="${index === activeSpotlight ? "is-active" : ""}" data-scene="${index}">
+      ${escapeHtml(scene.label)}
+    </button>
+  `).join("");
+}
+
+function showSpotlight(index) {
+  activeSpotlight = (index + spotlightScenes.length) % spotlightScenes.length;
+  renderSpotlight();
+}
+
+function startSpotlightTimer() {
+  window.clearInterval(spotlightTimer);
+  spotlightTimer = window.setInterval(() => showSpotlight(activeSpotlight + 1), 5200);
+}
+
+function updateScrollProgress() {
+  if (!scrollProgress) return;
+  const scrollable = document.documentElement.scrollHeight - window.innerHeight;
+  const progress = scrollable > 0 ? (window.scrollY / scrollable) * 100 : 0;
+  scrollProgress.style.width = `${Math.min(100, Math.max(0, progress))}%`;
+}
+
+let revealObserver = null;
+function observeReveal() {
+  if (!("IntersectionObserver" in window)) {
+    document.querySelectorAll(".reveal").forEach(item => item.classList.add("is-visible"));
+    return;
+  }
+  if (!revealObserver) {
+    revealObserver = new IntersectionObserver(entries => {
+      entries.forEach(entry => {
+        if (entry.isIntersecting) {
+          entry.target.classList.add("is-visible");
+          revealObserver.unobserve(entry.target);
+        }
+      });
+    }, { threshold: .12 });
+  }
+  document.querySelectorAll(".reveal:not(.is-visible)").forEach(item => revealObserver.observe(item));
+}
+
+function bindHeroTilt() {
+  const frame = document.querySelector(".device-frame");
+  if (!frame) return;
+  frame.addEventListener("pointermove", event => {
+    const rect = frame.getBoundingClientRect();
+    const x = ((event.clientX - rect.left) / rect.width - .5) * 10;
+    const y = ((event.clientY - rect.top) / rect.height - .5) * -8;
+    frame.style.transform = `rotateX(${7 + y}deg) rotateY(${-10 + x}deg)`;
+  });
+  frame.addEventListener("pointerleave", () => {
+    frame.style.transform = "rotateX(7deg) rotateY(-10deg)";
+  });
+}
+
+search.addEventListener("input", renderNodes);
+filters.addEventListener("click", event => {
+  const button = event.target.closest("button[data-kind]");
+  if (!button) return;
+  activeKind = button.dataset.kind;
+  filters.querySelectorAll("button").forEach(item => item.classList.toggle("is-active", item === button));
+  renderNodes();
+});
+
+if (spotlightControls) {
+  spotlightControls.addEventListener("click", event => {
+    const button = event.target.closest("button[data-scene]");
+    if (!button) return;
+    showSpotlight(Number(button.dataset.scene));
+    startSpotlightTimer();
+  });
+}
+
+document.getElementById("expandAll").addEventListener("click", () => {
+  document.querySelectorAll(".card:not([hidden])").forEach(card => card.open = true);
+});
+
+document.getElementById("collapseAll").addEventListener("click", () => {
+  document.querySelectorAll(".card").forEach(card => card.open = false);
+});
+
+window.addEventListener("scroll", updateScrollProgress, { passive: true });
+window.addEventListener("resize", updateScrollProgress);
+
+renderSpotlight();
+renderNodes();
+observeReveal();
+bindHeroTilt();
+startSpotlightTimer();
+updateScrollProgress();
+</script>
+</body>
+</html>

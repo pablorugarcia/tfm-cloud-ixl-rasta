@@ -80,12 +80,12 @@ static bool set_global_timeout_deadline(struct timespec *deadline)
     return true;
 }
 
-static bool sci_name_matches(
+static bool sci_name_matches( 
     const char field[SCI_NAME_LENGTH],
     const char *expected_name)
 {
     size_t expected_length;
-
+    /*No se usa simplemente strcmp() porque los nombres no tienen '\0', se rellenan con '_' hasta el final*/
     if (field == NULL || expected_name == NULL) {
         return false;
     }
@@ -118,8 +118,7 @@ static bool is_expected_oc_to_ixl_header(sci_telegram *telegram)
 
 static bool is_empty_payload_common_message(unsigned short message_type)
 {
-    return message_type == SCI_MESSAGE_TYPE_STATUS_BEGIN ||
-           message_type == SCI_MESSAGE_TYPE_STATUS_FINISH;
+    return message_type == SCI_MESSAGE_TYPE_STATUS_BEGIN || message_type == SCI_MESSAGE_TYPE_STATUS_FINISH;
 }
 
 static bool is_pdi_establishment_terminal(CloudIxlPdiState state)
@@ -242,10 +241,8 @@ static void finish_signal_confirmation(bool matched)
 
     command_confirmation_done = true;
     command_confirmation_ok = matched;
-    set_pdi_state_locked(
-        matched ? PDI_COMMAND_CONFIRMED : PDI_COMMAND_MISMATCH
-    );
-
+    set_pdi_state_locked(matched ? PDI_COMMAND_CONFIRMED : PDI_COMMAND_MISMATCH); /* if matched true -> confirmed, if matched false -> mismatch*/
+    /*establece el valor de pdi_state y lo broadcastea a cualquier hilo que lo pueda estar esperando*/
     pthread_mutex_unlock(&confirmation_lock);
 }
 
@@ -260,8 +257,7 @@ static bool wait_for_signal_confirmation(void)
     }
 
     pthread_mutex_lock(&confirmation_lock);
-    while (!command_confirmation_done &&
-           pdi_state == PDI_WAIT_CONFIRMATION) {
+    while (!command_confirmation_done && pdi_state == PDI_WAIT_CONFIRMATION) { /*mientras command_confirmation_done == false y pdi_state es PDI_WAIT_CONFIRMATION*/
         int wait_result =
             pthread_cond_timedwait(
                 &confirmation_condition,
@@ -330,14 +326,9 @@ static void on_brightness_status(
 void on_rasta_receive(struct rasta_notification_result *result)
 {
     unsigned short message_type;
-    rastaApplicationMessage message =
-        sr_get_received_data(
-            result->handle,
-            &result->connection
-        );
+    rastaApplicationMessage message = sr_get_received_data(result->handle, &result->connection);
 
-    sci_telegram *telegram =
-        sci_decode_telegram(message.appMessage);
+    sci_telegram *telegram = sci_decode_telegram(message.appMessage);
 
     if (telegram == NULL) {
         printf("PDI: received data is not a valid SCI telegram\n");
@@ -353,8 +344,7 @@ void on_rasta_receive(struct rasta_notification_result *result)
 
     message_type = sci_get_message_type(telegram);
 
-    if (is_empty_payload_common_message(message_type) &&
-        telegram->payload.used_bytes != 0U) {
+    if (is_empty_payload_common_message(message_type) && telegram->payload.used_bytes != 0U) {
         printf("PDI: invalid empty-payload SCI message length\n");
         rfree(telegram);
         set_pdi_state(PDI_FAILED);
@@ -362,8 +352,7 @@ void on_rasta_receive(struct rasta_notification_result *result)
     }
 
     pthread_mutex_lock(&confirmation_lock);
-    bool waiting_for_signal_confirmation =
-        pdi_state == PDI_WAIT_CONFIRMATION;
+    bool waiting_for_signal_confirmation = pdi_state == PDI_WAIT_CONFIRMATION;
     pthread_mutex_unlock(&confirmation_lock);
 
     if (message_type == SCI_MESSAGE_TYPE_VERSION_RESPONSE) {
@@ -445,33 +434,20 @@ void on_rasta_receive(struct rasta_notification_result *result)
         return;
     }
 
-    if (message_type ==
-            SCILS_MESSAGE_TYPE_SIGNAL_ASPECT_STATUS &&
-        waiting_for_signal_confirmation) {
+    if (message_type == SCILS_MESSAGE_TYPE_SIGNAL_ASPECT_STATUS && waiting_for_signal_confirmation) {
 
         sci_ls_icd_signal_vector reported_vector;
-        sci_ls_icd_parse_result parse_result =
-            sci_ls_icd_parse_signal_aspect_status(
-                telegram,
-                &reported_vector
-            );
+        sci_ls_icd_parse_result parse_result = sci_ls_icd_parse_signal_aspect_status(telegram, &reported_vector);
         rfree(telegram);
 
         if (parse_result != SCI_LS_ICD_PARSE_SUCCESS) {
-            printf(
-                "PDI: invalid parse signal aspect status: %d\n",
-                (int)parse_result
-            );
+            printf("PDI: invalid parse signal aspect status: %d\n", (int)parse_result);
             fail_pending_signal_confirmation();
             return;
         }
 
         bool matched =
-            memcmp(
-                expected_signal_vector.bytes,
-                reported_vector.bytes,
-                SCI_LS_ICD_SIGNAL_VECTOR_SIZE
-            ) == 0;
+            memcmp(expected_signal_vector.bytes, reported_vector.bytes, SCI_LS_ICD_SIGNAL_VECTOR_SIZE) == 0;
 
         if (!matched) {
             printf("Command and message do not match\n");
@@ -699,6 +675,7 @@ static void on_initialisation_completed(scils_t *ls, char *sender)
 
 
 int main(void){
+    /*Declara el estado del IXL, el array del nombre del OC, el rasta handle y los dos canales de comunicación para la redundancia*/
     IXL_state state;
     char receiver[] = OC_SCI_NAME;
     struct rasta_handle h;
@@ -710,14 +687,15 @@ int main(void){
     strcpy(channels[1].ip, "127.0.0.1");
     channels[1].port = 8889;
 
+    /*Inicializa el handle rasta (estado RaSTA), la conexión y la instancia sci-ls (ixl con un estado h)*/
     sr_init_handle(&h, CONFIG_PATH);
-    h.notifications.on_receive = on_rasta_receive;
+    h.notifications.on_receive = on_rasta_receive; /*Declara que cuando salta el trigger del receive, se use la funcion on_rasta_receive declarada en este main.c*/
     h.notifications.on_handshake_complete = on_rasta_handshake;
     printf("Initialising RaSTA connection with the OC...\n");
     h.notifications.on_connection_state_change = on_connection_change;
     h.notifications.on_heartbeat_timeout = on_timeout;
     scils = scils_init(&h, IXL_SCI_NAME);
-    scils_register_sci_name(scils, OC_SCI_NAME, OC_RASTA_ID);
+    scils_register_sci_name(scils, OC_SCI_NAME, OC_RASTA_ID); /*convierte "LS_OC" al formato SCI fijo de 20 caracteres, con _ de relleno*/
 
     scils->notifications.on_status_begin_received = on_initialisation_start;
     scils->notifications.on_signal_aspect_status_received = on_aspect_status;
@@ -794,6 +772,7 @@ int main(void){
         aspect = ls_request_command(decision);
         printf("Decision: %s\n", decision_name_to_string(decision));
 
+        /*Corre la funcion build_signal_vector codificando el aspect a los bytes del vector y si falla sale del bucle*/
         if (!cloud_ixl_build_signal_vector(aspect, expected_signal_vector.bytes)) {
             printf("SCI-LS expected signal vector could not be built\n");
             exit_code = 1;

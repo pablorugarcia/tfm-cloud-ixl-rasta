@@ -39,7 +39,7 @@ scils_t * scils_init(struct rasta_handle * handle, char * sciName){
     scils_t * scils = rmalloc(sizeof(scils_t));
 
     scils->rasta_handle = handle;
-    scils->sciName = rmalloc((unsigned int)strlen(sciName));
+    scils->sciName = rmalloc((unsigned int)strlen(sciName) + 1U); /*+1U added to avoid buffer overflow*/
     strcpy(scils->sciName, sciName);
 
     // initialize map
