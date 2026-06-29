@@ -51,14 +51,62 @@ static RouteId read_route_id(void){
     }
 }
 
+static SignalAspect read_signal_aspect(void){
+    char buffer[16];
+
+    for(;;){
+        printf(
+            "Aspect [0=VIA_LIBRE, 1=PARADA, 2=ANUNCIO_PARADA, "
+            "4=ANUNCIO_PRECAUCION, 5=REBASE, 6=PARADA_SELECTIVA_N2, "
+            "7=REBASE_AUTORIZADO, 9=APAGADA]: "
+        );
+
+        if(fgets(buffer, sizeof(buffer), stdin) == NULL){
+            printf("No aspect input received. Defaulting to PARADA.\n");
+            return PARADA;
+        }
+
+        switch(first_selection_char(buffer)){
+            case '0':
+                return VIA_LIBRE;
+
+            case '1':
+                return PARADA;
+
+            case '2':
+                return ANUNCIO_PARADA;
+
+            case '4':
+                return ANUNCIO_PRECAUCION;
+
+            case '5':
+                return REBASE;
+
+            case '6':
+                return PARADA_SELECTIVA_N2;
+
+            case '7':
+                return REBASE_AUTORIZADO;
+
+            case '9':
+                return APAGADA;
+
+            default:
+                printf("Unsupported aspect for this lab command.\n");
+                break;
+        }
+    }
+}
+
 RouteRequest receive_route_request(void){
     char buffer[16];
     RouteRequest r_request = {
         .command = ROUTE_COMMAND_REQUEST,
         .route_id = RUTA_AB,
+        .aspect = PARADA,
     };
 
-    printf("Command [r=request, l=release, q=quit]: ");
+    printf("Command [r=request, l=release, a=aspect, q=quit]: ");
     if(fgets(buffer, sizeof(buffer), stdin) == NULL){
         r_request.command = ROUTE_COMMAND_QUIT;
         return r_request;
@@ -69,6 +117,14 @@ RouteRequest receive_route_request(void){
         case 'L':
             r_request.command = ROUTE_COMMAND_RELEASE;
             break;
+
+        case 'a':
+        case 'A':
+        case 's':
+        case 'S':
+            r_request.command = ROUTE_COMMAND_SIGNAL_ASPECT;
+            r_request.aspect = read_signal_aspect();
+            return r_request;
 
         case 'q':
         case 'Q':

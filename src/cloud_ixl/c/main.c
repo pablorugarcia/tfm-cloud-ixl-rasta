@@ -2,6 +2,7 @@
 #include <errno.h>
 #include <pthread.h>
 #include <stdio.h>
+#include <stdlib.h>
 #include <string.h>
 #include <time.h>
 #include <cloud_ixl_routes.h>
@@ -22,7 +23,11 @@
 #define PDI_VERSION 0x05U
 #define PDI_GLOBAL_TIMEOUT_SECONDS 10
 
-#define CONFIG_PATH "config/rasta_client1_local.cfg"
+#define DEFAULT_CONFIG_PATH "config/rasta_client1_local.cfg"
+#define DEFAULT_OC_CH1_IP "127.0.0.1"
+#define DEFAULT_OC_CH1_PORT 8888
+#define DEFAULT_OC_CH2_IP "127.0.0.1"
+#define DEFAULT_OC_CH2_PORT 8889
 #define OC_RASTA_ID 0x61UL
 #define OC_SCI_NAME "LS_OC"
 #define IXL_SCI_NAME "IXL_CENTRAL"
@@ -50,6 +55,118 @@ static bool command_confirmation_ok = false;
 
 
 scils_t * scils;
+
+static const char *env_or_default(
+    const char *env_name,
+    const char *default_value)
+{
+    const char *value = getenv(env_name);
+
+    if (value == NULL || value[0] == '\0') {
+        return default_value;
+    }
+
+    return value;
+}
+
+static bool read_ip_setting(
+    char *destination,
+    size_t destination_size,
+    const char *env_name,
+    const char *default_value)
+{
+    const char *value = env_or_default(env_name, default_value);
+
+    if (strlen(value) >= destination_size) {
+        printf(
+            "Configuration error: %s value '%s' is too long\n",
+            env_name,
+            value
+        );
+        return false;
+    }
+
+    strcpy(destination, value);
+    return true;
+}
+
+static bool read_port_setting(
+    int *destination,
+    const char *env_name,
+    int default_value)
+{
+    const char *value = getenv(env_name);
+    char *end = NULL;
+    unsigned long parsed;
+
+    if (destination == NULL) {
+        return false;
+    }
+
+    if (value == NULL || value[0] == '\0') {
+        *destination = default_value;
+        return true;
+    }
+
+    errno = 0;
+    parsed = strtoul(value, &end, 10);
+
+    if (errno != 0 || end == value || *end != '\0' ||
+        parsed == 0UL || parsed > 65535UL) {
+        printf(
+            "Configuration error: %s must be a TCP/UDP port, got '%s'\n",
+            env_name,
+            value
+        );
+        return false;
+    }
+
+    *destination = (int)parsed;
+    return true;
+}
+
+static bool configure_oc_channels(struct RastaIPData channels[2])
+{
+    if (channels == NULL) {
+        return false;
+    }
+
+    if (!read_ip_setting(
+            channels[0].ip,
+            sizeof(channels[0].ip),
+            "CLOUD_IXL_OC_CH1_IP",
+            DEFAULT_OC_CH1_IP
+        )) {
+        return false;
+    }
+
+    if (!read_port_setting(
+            &channels[0].port,
+            "CLOUD_IXL_OC_CH1_PORT",
+            DEFAULT_OC_CH1_PORT
+        )) {
+        return false;
+    }
+
+    if (!read_ip_setting(
+            channels[1].ip,
+            sizeof(channels[1].ip),
+            "CLOUD_IXL_OC_CH2_IP",
+            DEFAULT_OC_CH2_IP
+        )) {
+        return false;
+    }
+
+    if (!read_port_setting(
+            &channels[1].port,
+            "CLOUD_IXL_OC_CH2_PORT",
+            DEFAULT_OC_CH2_PORT
+        )) {
+        return false;
+    }
+
+    return true;
+}
 
 static void cleanup_pdi_resources(struct rasta_handle *handle)
 {
@@ -680,15 +797,24 @@ int main(void){
     char receiver[] = OC_SCI_NAME;
     struct rasta_handle h;
     struct RastaIPData channels[2] = {0};
+    const char *config_path =
+        env_or_default("CLOUD_IXL_RASTA_CONFIG", DEFAULT_CONFIG_PATH);
 
-    strcpy(channels[0].ip, "127.0.0.1");
-    channels[0].port = 8888;
-
-    strcpy(channels[1].ip, "127.0.0.1");
-    channels[1].port = 8889;
+    if (!configure_oc_channels(channels)) {
+        return 1;
+    }
 
     /*Inicializa el handle rasta (estado RaSTA), la conexión y la instancia sci-ls (ixl con un estado h)*/
-    sr_init_handle(&h, CONFIG_PATH);
+    printf("Cloud IXL RaSTA config: %s\n", config_path);
+    printf(
+        "OC RaSTA channels: %s:%d and %s:%d\n",
+        channels[0].ip,
+        channels[0].port,
+        channels[1].ip,
+        channels[1].port
+    );
+
+    sr_init_handle(&h, config_path);
     h.notifications.on_receive = on_rasta_receive; /*Declara que cuando salta el trigger del receive, se use la funcion on_rasta_receive declarada en este main.c*/
     h.notifications.on_handshake_complete = on_rasta_handshake;
     printf("Initialising RaSTA connection with the OC...\n");
@@ -756,21 +882,34 @@ int main(void){
         SignalAspect aspect;
         CloudIxlScilsSendResult result;
         bool release_requested;
+        bool direct_aspect_requested;
 
         if(r_request.command == ROUTE_COMMAND_QUIT){
             printf("No more route commands.\n");
             break;
         }
 
-        release_requested = r_request.command == ROUTE_COMMAND_RELEASE;
-        if(release_requested){
-            decision = STOP;
-        } else {
-            decision = request_route_decision(&state, r_request.route_id);
-        }
+        release_requested = false;
+        direct_aspect_requested =
+            r_request.command == ROUTE_COMMAND_SIGNAL_ASPECT;
 
-        aspect = ls_request_command(decision);
-        printf("Decision: %s\n", decision_name_to_string(decision));
+        if(direct_aspect_requested){
+            aspect = r_request.aspect;
+            printf(
+                "Manual signal aspect: %s\n",
+                signal_aspect_to_string(aspect)
+            );
+        } else {
+            release_requested = r_request.command == ROUTE_COMMAND_RELEASE;
+            if(release_requested){
+                decision = STOP;
+            } else {
+                decision = request_route_decision(&state, r_request.route_id);
+            }
+
+            aspect = ls_request_command(decision);
+            printf("Decision: %s\n", decision_name_to_string(decision));
+        }
 
         /*Corre la funcion build_signal_vector codificando el aspect a los bytes del vector y si falla sale del bucle*/
         if (!cloud_ixl_build_signal_vector(aspect, expected_signal_vector.bytes)) {

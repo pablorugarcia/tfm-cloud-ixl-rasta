@@ -143,6 +143,8 @@ target_compile_options(cloud_ixl PRIVATE
         -Werror
 )
 
+configure_file(config/rasta_client1_lab.cfg rasta_client1_lab.cfg COPYONLY)
+
 add_executable(oc_simulator
         src/oc_simulator/c/main.c
 )

@@ -5,6 +5,20 @@
 #include <cloud_ixl_input.h>
 #include <cloud_ixl_format.h>
 
+const char *route_name_to_string(RouteId id){
+    switch (id)
+    {
+    case RUTA_AB:
+        return "RUTA_AB";
+
+    case RUTA_AC:
+        return "RUTA_AC";
+    
+    default:
+        return "UNKNOWN ROUTE NAME";
+    }
+}
+
 const char *route_state_to_string(RouteState state)
 {
     switch (state) {
@@ -109,5 +123,37 @@ const char *decision_name_to_string(RouteDecision r_decision)
             return "GO";
         default:
             return "UNKNOWN_DECISION";
+    }
+}
+
+const char *signal_aspect_to_string(SignalAspect aspect)
+{
+    switch (aspect) {
+        case VIA_LIBRE:
+            return "VIA_LIBRE";
+
+        case PARADA:
+            return "PARADA";
+
+        case ANUNCIO_PARADA:
+            return "ANUNCIO_PARADA";
+
+        case ANUNCIO_PRECAUCION:
+            return "ANUNCIO_PRECAUCION";
+
+        case REBASE:
+            return "REBASE";
+
+        case PARADA_SELECTIVA_N2:
+            return "PARADA_SELECTIVA_N2";
+
+        case REBASE_AUTORIZADO:
+            return "REBASE_AUTORIZADO";
+
+        case APAGADA:
+            return "APAGADA";
+
+        default:
+            return "UNKNOWN_SIGNAL_ASPECT";
     }
 }

@@ -41,10 +41,10 @@ static RouteState get_conflicting_route_state(
         other_route = cloud_ixl_get_route_definition(other_route_id);
         if(other_route != NULL && routes_share_section(route, other_route)){
             printf(
-                "La ruta %d está %s y comparte secciones con la ruta %d.\n",
-                (int)other_route_id,
+                "La ruta %s está %s y comparte secciones con la ruta %s.\n",
+                route_name_to_string((int)other_route_id),
                 route_state_to_string(state->route[other_route_id]),
-                (int)route_id
+                route_name_to_string((int)route_id)
             );
             return RESERVED;
         }
@@ -69,8 +69,8 @@ RouteState get_route_state(const IXL_state *state, RouteId route_id){
 
     if(route_state_blocks(state->route[route_id])){
         printf(
-            "La ruta %d ya está %s.\n",
-            (int)route_id,
+            "La ruta %s ya está %s.\n",
+            route_name_to_string((int)route_id),
             route_state_to_string(state->route[route_id])
         );
         return state->route[route_id];
@@ -103,7 +103,7 @@ RouteDecision request_route_decision(IXL_state *state, RouteId route_id){
     RouteState r_state = get_route_state(state, route_id);
     if (r_state == FREE){
         state->route[route_id] = RESERVED;
-        printf("La ruta %d queda %s.\n", (int)route_id, route_state_to_string(state->route[route_id]));
+        printf("La ruta %s queda %s.\n", route_name_to_string((int)route_id), route_state_to_string(state->route[route_id]));
         return GO;
     }
      
@@ -124,11 +124,11 @@ bool release_route(IXL_state *state, RouteId route_id){
     }
 
     if(state->route[route_id] == FREE){
-        printf("La ruta %d ya está %s.\n", (int)route_id, route_state_to_string(FREE));
+        printf("La ruta %s ya está %s.\n", route_name_to_string((int)route_id), route_state_to_string(FREE));
         return false;
     }
 
     state->route[route_id] = FREE;
-    printf("La ruta %d queda %s.\n", (int)route_id, route_state_to_string(state->route[route_id]));
+    printf("La ruta %s queda %s.\n", route_name_to_string((int)route_id), route_state_to_string(state->route[route_id]));
     return true;
 }

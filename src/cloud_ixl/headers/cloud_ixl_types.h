@@ -75,12 +75,14 @@ typedef enum{
 typedef enum{
     ROUTE_COMMAND_REQUEST,
     ROUTE_COMMAND_RELEASE,
+    ROUTE_COMMAND_SIGNAL_ASPECT,
     ROUTE_COMMAND_QUIT,
 } RouteCommand;
 
 typedef struct {
     RouteCommand command;
     RouteId route_id;
+    SignalAspect aspect;
 } RouteRequest;
 
 #endif
