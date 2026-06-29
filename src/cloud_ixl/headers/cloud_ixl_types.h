@@ -41,15 +41,21 @@ typedef enum{
 
 typedef enum{
     VIA_LIBRE = 0,
-    PARADA,
-    ANUNCIO_PARADA,
-    VIA_LIBRE_CONDICIONAL,
-    ANUNCIO_PRECAUCION,
-    REBASE,
-    PARADA_SELECTIVA_N2,
-    REBASE_AUTORIZADO,
-    PARADA_SELECTIVA_N1,
-    APAGADA
+    PARADA = 1,
+    ANUNCIO_PARADA = 2,
+    /*
+     * Disabled until Pedro's OC accepts basic aspect 0x04.
+     * VIA_LIBRE_CONDICIONAL = 3,
+     */
+    ANUNCIO_PRECAUCION = 4,
+    REBASE = 5,
+    PARADA_SELECTIVA_N2 = 6,
+    REBASE_AUTORIZADO = 7,
+    /*
+     * Disabled until Pedro's OC accepts national aspect 0x04.
+     * PARADA_SELECTIVA_N1 = 8,
+     */
+    APAGADA = 9
 } SignalAspect;
 
 typedef enum{

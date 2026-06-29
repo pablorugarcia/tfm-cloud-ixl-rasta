@@ -23,6 +23,24 @@ static bool is_valid_icd_luminosity(scils_brightness luminosity)
            luminosity == SCILS_BRIGHTNESS_NIGHT;
 }
 
+static bool is_supported_signal_aspect(SignalAspect aspect)
+{
+    switch (aspect) {
+        case VIA_LIBRE:
+        case PARADA:
+        case ANUNCIO_PARADA:
+        case ANUNCIO_PRECAUCION:
+        case REBASE:
+        case PARADA_SELECTIVA_N2:
+        case REBASE_AUTORIZADO:
+        case APAGADA:
+            return true;
+
+        default:
+            return false;
+    }
+}
+
 bool cloud_ixl_build_signal_vector(SignalAspect aspect, uint8_t vector[SCI_LS_ICD_SIGNAL_VECTOR_SIZE]){
     static const uint8_t signal_vectors[APAGADA + 1][SCI_LS_ICD_SIGNAL_VECTOR_SIZE] = {
         [VIA_LIBRE] = {
@@ -40,11 +58,14 @@ bool cloud_ixl_build_signal_vector(SignalAspect aspect, uint8_t vector[SCI_LS_IC
             0xFE, 0xFE, 0x01, 0xFE, 0xFE, 0xFE,
             0xFE, 0xFE, 0xFE, 0xFE, 0xFE, 0xFE
         },
-        [VIA_LIBRE_CONDICIONAL] = {
-            0x04, 0x00, 0x00, 0x00, 0x00, 0x00,
-            0xFE, 0xFE, 0x01, 0xFE, 0xFE, 0xFE,
-            0xFE, 0xFE, 0xFE, 0xFE, 0xFE, 0xFE
-        },
+        /*
+         * Disabled until Pedro's OC accepts basic aspect 0x04.
+         * [VIA_LIBRE_CONDICIONAL] = {
+         *     0x04, 0x00, 0x00, 0x00, 0x00, 0x00,
+         *     0xFE, 0xFE, 0x01, 0xFE, 0xFE, 0xFE,
+         *     0xFE, 0xFE, 0xFE, 0xFE, 0xFE, 0xFE
+         * },
+         */
         [ANUNCIO_PRECAUCION] = {
             0x05, 0x00, 0x00, 0x00, 0x00, 0x00,
             0xFE, 0xFE, 0x01, 0xFE, 0xFE, 0xFE,
@@ -65,11 +86,14 @@ bool cloud_ixl_build_signal_vector(SignalAspect aspect, uint8_t vector[SCI_LS_IC
             0xFE, 0xFE, 0x01, 0x03, 0xFE, 0xFE,
             0xFE, 0xFE, 0xFE, 0xFE, 0xFE, 0xFE
         },
-        [PARADA_SELECTIVA_N1] = {
-            0xFE, 0x00, 0x00, 0x00, 0x00, 0x00,
-            0xFE, 0xFE, 0x01, 0x04, 0xFE, 0xFE,
-            0xFE, 0xFE, 0xFE, 0xFE, 0xFE, 0xFE
-        },
+        /*
+         * Disabled until Pedro's OC accepts national aspect 0x04.
+         * [PARADA_SELECTIVA_N1] = {
+         *     0xFE, 0x00, 0x00, 0x00, 0x00, 0x00,
+         *     0xFE, 0xFE, 0x01, 0x04, 0xFE, 0xFE,
+         *     0xFE, 0xFE, 0xFE, 0xFE, 0xFE, 0xFE
+         * },
+         */
         [APAGADA] = {
             0x02, 0x00, 0x00, 0x00, 0x00, 0x00,
             0xFE, 0xFE, 0x0F, 0xFE, 0xFE, 0xFE,
@@ -77,11 +101,7 @@ bool cloud_ixl_build_signal_vector(SignalAspect aspect, uint8_t vector[SCI_LS_IC
         }
     };
 
-    if(vector == NULL){
-        return false;
-    }
-
-    if (aspect < VIA_LIBRE || aspect > APAGADA) {
+    if(vector == NULL || !is_supported_signal_aspect(aspect)){
         return false;
     }
 
