@@ -23,10 +23,10 @@
 #define PDI_VERSION 0x05U
 #define PDI_GLOBAL_TIMEOUT_SECONDS 10
 
-#define DEFAULT_CONFIG_PATH "config/rasta_client1_local.cfg"
-#define DEFAULT_OC_CH1_IP "127.0.0.1"
+#define DEFAULT_CONFIG_PATH "config/rasta_client1_lab.cfg"
+#define DEFAULT_OC_CH1_IP "192.168.0.152"
 #define DEFAULT_OC_CH1_PORT 8888
-#define DEFAULT_OC_CH2_IP "127.0.0.1"
+#define DEFAULT_OC_CH2_IP "192.168.0.152"
 #define DEFAULT_OC_CH2_PORT 8889
 #define OC_RASTA_ID 0x61UL
 #define OC_SCI_NAME "LS_OC"
@@ -69,12 +69,7 @@ static const char *env_or_default(
     return value;
 }
 
-static bool read_ip_setting(
-    char *destination,
-    size_t destination_size,
-    const char *env_name,
-    const char *default_value)
-{
+static bool read_ip_setting(char *destination, size_t destination_size, const char *env_name, const char *default_value){
     const char *value = env_or_default(env_name, default_value);
 
     if (strlen(value) >= destination_size) {
@@ -707,8 +702,7 @@ static void handle_icd_version_response(
 
     set_pdi_state(PDI_WAIT_INITIALISATION_START);
 
-    sci_return_code send_code =
-        scils_send_status_request(ls, OC_SCI_NAME);
+    sci_return_code send_code = scils_send_status_request(ls, OC_SCI_NAME);
 
     if (send_code != SUCCESS) {
         printf("PDI: status request could not be sent\n");
@@ -797,8 +791,7 @@ int main(void){
     char receiver[] = OC_SCI_NAME;
     struct rasta_handle h;
     struct RastaIPData channels[2] = {0};
-    const char *config_path =
-        env_or_default("CLOUD_IXL_RASTA_CONFIG", DEFAULT_CONFIG_PATH);
+    const char *config_path = env_or_default("CLOUD_IXL_RASTA_CONFIG", DEFAULT_CONFIG_PATH);
 
     if (!configure_oc_channels(channels)) {
         return 1;
