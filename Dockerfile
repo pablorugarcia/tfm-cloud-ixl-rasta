@@ -1,4 +1,4 @@
-FROM alpine:3.12
+FROM alpine:3.23.5
 RUN apk update && apk add --no-cache cmake gcc make musl-dev linux-headers
 
 # copy source and build files to container
