@@ -98,15 +98,45 @@ static SignalAspect read_signal_aspect(void){
     }
 }
 
+static SignalLuminosity read_signal_luminosity(void){
+    char buffer[16];
+
+    for(;;){
+        printf("Luminosity [1/d=DAY, 2/n=NIGHT]: ");
+
+        if(fgets(buffer, sizeof(buffer), stdin) == NULL){
+            printf("No luminosity input received. Defaulting to DAY.\n");
+            return SIGNAL_LUMINOSITY_DAY;
+        }
+
+        switch(first_selection_char(buffer)){
+            case '2':
+            case 'n':
+            case 'N':
+                return SIGNAL_LUMINOSITY_NIGHT;
+
+            case '1':
+            case 'd':
+            case 'D':
+                return SIGNAL_LUMINOSITY_DAY;
+
+            default:
+                printf("Unsupported luminosity for this lab command.\n");
+                break;
+        }
+    }
+}
+
 RouteRequest receive_route_request(void){
     char buffer[16];
     RouteRequest r_request = {
         .command = ROUTE_COMMAND_REQUEST,
         .route_id = RUTA_AB,
         .aspect = PARADA,
+        .luminosity = SIGNAL_LUMINOSITY_DAY,
     };
 
-    printf("Command [r=request, l=release, a=aspect, q=quit]: ");
+    printf("Command [r=request, l=release, a=aspect, b=brightness, q=quit]: ");
     if(fgets(buffer, sizeof(buffer), stdin) == NULL){
         r_request.command = ROUTE_COMMAND_QUIT;
         return r_request;
@@ -124,6 +154,12 @@ RouteRequest receive_route_request(void){
         case 'S':
             r_request.command = ROUTE_COMMAND_SIGNAL_ASPECT;
             r_request.aspect = read_signal_aspect();
+            return r_request;
+
+        case 'b':
+        case 'B':
+            r_request.command = ROUTE_COMMAND_LUMINOSITY;
+            r_request.luminosity = read_signal_luminosity();
             return r_request;
 
         case 'q':

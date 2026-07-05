@@ -784,6 +784,33 @@ static void on_initialisation_completed(scils_t *ls, char *sender)
     printf("PDI: initialisation completed\n");
 }
 
+static scils_brightness scils_brightness_from_signal_luminosity(
+    SignalLuminosity luminosity)
+{
+    switch (luminosity) {
+        case SIGNAL_LUMINOSITY_NIGHT:
+            return SCILS_BRIGHTNESS_NIGHT;
+
+        case SIGNAL_LUMINOSITY_DAY:
+        default:
+            return SCILS_BRIGHTNESS_DAY;
+    }
+}
+
+static const char *signal_luminosity_to_string(SignalLuminosity luminosity)
+{
+    switch (luminosity) {
+        case SIGNAL_LUMINOSITY_NIGHT:
+            return "NIGHT";
+
+        case SIGNAL_LUMINOSITY_DAY:
+            return "DAY";
+
+        default:
+            return "UNKNOWN";
+    }
+}
+
 
 int main(void){
     /*Declara el estado del IXL, el array del nombre del OC, el rasta handle y los dos canales de comunicación para la redundancia*/
@@ -879,6 +906,47 @@ int main(void){
 
         if(r_request.command == ROUTE_COMMAND_QUIT){
             printf("No more route commands.\n");
+            break;
+        }
+
+        if(r_request.command == ROUTE_COMMAND_LUMINOSITY){
+            scils_brightness luminosity =
+                scils_brightness_from_signal_luminosity(
+                    r_request.luminosity
+                );
+
+            printf(
+                "Manual signal luminosity: %s\n",
+                signal_luminosity_to_string(r_request.luminosity)
+            );
+
+            result = cloud_ixl_scils_send_luminosity(
+                scils,
+                receiver,
+                luminosity
+            );
+
+            switch (result) {
+                case SUCCESS_SCILS:
+                    printf("SCI-LS luminosity command sent\n");
+                    continue;
+
+                case CLOUD_IXL_SCILS_BUILD_ERROR:
+                    printf("SCI-LS luminosity telegram could not be built\n");
+                    exit_code = 1;
+                    break;
+
+                case CLOUD_IXL_SCILS_SEND_ERROR:
+                    printf("SCI-LS luminosity telegram could not be sent through RaSTA\n");
+                    exit_code = 1;
+                    break;
+
+                default:
+                    printf("Unknown SCI-LS luminosity sending result\n");
+                    exit_code = 1;
+                    break;
+            }
+
             break;
         }
 

@@ -59,6 +59,11 @@ typedef enum{
 } SignalAspect;
 
 typedef enum{
+    SIGNAL_LUMINOSITY_DAY = 0x01,
+    SIGNAL_LUMINOSITY_NIGHT = 0x02,
+} SignalLuminosity;
+
+typedef enum{
     FREE,
     WRONG_POINTS,
     RESERVED,
@@ -76,6 +81,7 @@ typedef enum{
     ROUTE_COMMAND_REQUEST,
     ROUTE_COMMAND_RELEASE,
     ROUTE_COMMAND_SIGNAL_ASPECT,
+    ROUTE_COMMAND_LUMINOSITY,
     ROUTE_COMMAND_QUIT,
 } RouteCommand;
 
@@ -83,6 +89,7 @@ typedef struct {
     RouteCommand command;
     RouteId route_id;
     SignalAspect aspect;
+    SignalLuminosity luminosity;
 } RouteRequest;
 
 #endif
