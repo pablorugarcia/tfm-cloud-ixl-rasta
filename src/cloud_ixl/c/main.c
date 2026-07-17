@@ -43,6 +43,7 @@ typedef enum {
     PDI_WAIT_CONFIRMATION,
     PDI_COMMAND_CONFIRMED,
     PDI_COMMAND_MISMATCH,
+    PDI_COMMAND_REJECTED,
     PDI_FAILED /*there was incompatibility, timeout or protocol error*/
 } CloudIxlPdiState;
 
@@ -50,8 +51,7 @@ static CloudIxlPdiState pdi_state = PDI_DISCONNECTED;
 static pthread_mutex_t confirmation_lock = PTHREAD_MUTEX_INITIALIZER;
 static pthread_cond_t confirmation_condition = PTHREAD_COND_INITIALIZER;
 static sci_ls_icd_signal_vector expected_signal_vector;
-static bool command_confirmation_done = false;
-static bool command_confirmation_ok = false;
+
 
 
 scils_t * scils;
@@ -238,18 +238,46 @@ static bool is_pdi_establishment_terminal(CloudIxlPdiState state)
     return state == PDI_ESTABLISHED || state == PDI_FAILED;
 }
 
+static bool is_signal_command_result(CloudIxlPdiState state)
+{
+    return state == PDI_COMMAND_CONFIRMED ||
+           state == PDI_COMMAND_MISMATCH ||
+           state == PDI_COMMAND_REJECTED;
+}
+
 static bool is_luminosity_status_allowed(CloudIxlPdiState state)
 {
     return state == PDI_RECEIVING_INITIAL_STATUS ||
            state == PDI_ESTABLISHED ||
            state == PDI_WAIT_CONFIRMATION ||
-           state == PDI_COMMAND_CONFIRMED;
+           state == PDI_COMMAND_CONFIRMED ||
+           state == PDI_COMMAND_MISMATCH ||
+           state == PDI_COMMAND_REJECTED;
 }
+
+
 
 static void set_pdi_state_locked(CloudIxlPdiState state)
 {
     pdi_state = state;
     pthread_cond_broadcast(&confirmation_condition);
+}
+
+static bool begin_signal_confirmation(void)
+{
+    bool started;
+
+    pthread_mutex_lock(&confirmation_lock);
+
+    started = pdi_state == PDI_ESTABLISHED;
+
+    if (started) {
+        set_pdi_state_locked(PDI_WAIT_CONFIRMATION);
+    }
+
+    pthread_mutex_unlock(&confirmation_lock);
+
+    return started;
 }
 
 static void set_pdi_state(CloudIxlPdiState state)
@@ -330,11 +358,6 @@ static CloudIxlPdiState wait_for_pdi_establishment(void)
 
 static void fail_pending_signal_confirmation_locked(void)
 {
-    if (!command_confirmation_done) {
-        command_confirmation_done = true;
-        command_confirmation_ok = false;
-    }
-
     set_pdi_state_locked(PDI_FAILED);
 }
 
@@ -347,29 +370,32 @@ static void fail_pending_signal_confirmation(void)
     pthread_mutex_unlock(&confirmation_lock);
 }
 
-static void finish_signal_confirmation(bool matched)
+static void complete_signal_command(CloudIxlPdiState outcome)
 {
     pthread_mutex_lock(&confirmation_lock);
 
-    command_confirmation_done = true;
-    command_confirmation_ok = matched;
-    set_pdi_state_locked(matched ? PDI_COMMAND_CONFIRMED : PDI_COMMAND_MISMATCH); /* if matched true -> confirmed, if matched false -> mismatch*/
-    /*establece el valor de pdi_state y lo broadcastea a cualquier hilo que lo pueda estar esperando*/
+    if (pdi_state != PDI_WAIT_CONFIRMATION ||
+        !is_signal_command_result(outcome)) {
+        set_pdi_state_locked(PDI_FAILED);
+    } else {
+        set_pdi_state_locked(outcome);
+    }
+
     pthread_mutex_unlock(&confirmation_lock);
 }
 
-static bool wait_for_signal_confirmation(void)
+static CloudIxlPdiState wait_for_signal_confirmation(void)
 {
     struct timespec deadline;
-    bool confirmed;
+    CloudIxlPdiState result;
 
     if (!set_global_timeout_deadline(&deadline)) {
         fail_pending_signal_confirmation();
-        return false;
+        return PDI_FAILED;
     }
 
     pthread_mutex_lock(&confirmation_lock);
-    while (!command_confirmation_done && pdi_state == PDI_WAIT_CONFIRMATION) { /*mientras command_confirmation_done == false y pdi_state es PDI_WAIT_CONFIRMATION*/
+    while (pdi_state == PDI_WAIT_CONFIRMATION) { /*mientras command_confirmation_done == false y pdi_state es PDI_WAIT_CONFIRMATION*/
         int wait_result =
             pthread_cond_timedwait(
                 &confirmation_condition,
@@ -393,10 +419,14 @@ static bool wait_for_signal_confirmation(void)
         }
     }
 
-    confirmed = command_confirmation_ok;
+    result = pdi_state;
+
+    if (is_signal_command_result(result)) {
+        set_pdi_state_locked(PDI_ESTABLISHED);
+    }
     pthread_mutex_unlock(&confirmation_lock);
 
-    return confirmed;
+    return result;
 }
 
 void on_rasta_handshake(struct rasta_notification_result *result){
@@ -434,6 +464,15 @@ static void on_brightness_status(
     char *sender,
     scils_brightness brightness
 );
+
+static void print_signal_vector(const sci_ls_icd_signal_vector *vector)
+{
+    printf("PDI: current signal vector:");
+    for (size_t i = 0; i < SCI_LS_ICD_SIGNAL_VECTOR_SIZE; i++) {
+        printf(" %02X", (unsigned int)vector->bytes[i]);
+    }
+    printf("\n");
+}
 
 void on_rasta_receive(struct rasta_notification_result *result)
 {
@@ -563,11 +602,12 @@ void on_rasta_receive(struct rasta_notification_result *result)
 
         if (!matched) {
             printf("Command and message do not match\n");
+            print_signal_vector(&reported_vector);            
         } else {
             printf("Command and message match\n");
         }
 
-        finish_signal_confirmation(matched);
+        complete_signal_command(matched ? PDI_COMMAND_CONFIRMED : PDI_COMMAND_MISMATCH);
 
         return;
     }
@@ -658,26 +698,15 @@ static const char *execution_error_code_to_string(unsigned char error_code)
     }
 }
 
-static void print_signal_vector(const sci_ls_icd_signal_vector *vector)
-{
-    printf("PDI: current signal vector:");
-    for (size_t i = 0; i < SCI_LS_ICD_SIGNAL_VECTOR_SIZE; i++) {
-        printf(" %02X", (unsigned int)vector->bytes[i]);
-    }
-    printf("\n");
-}
+
 
 static void handle_icd_execution_error(
     const sci_ls_icd_execution_error *error)
 {
-    printf(
-        "PDI: execution error received: 0x%02X (%s)\n",
-        (unsigned int)error->error_code,
-        execution_error_code_to_string(error->error_code)
-    );
+    printf("PDI: execution error received: 0x%02X (%s)\n", (unsigned int)error->error_code, execution_error_code_to_string(error->error_code));
     print_signal_vector(&error->current_signal_vector);
+    complete_signal_command(PDI_COMMAND_REJECTED);
 
-    fail_pending_signal_confirmation();
 }
 
 static void handle_icd_version_response(
@@ -979,11 +1008,15 @@ int main(void){
             break;
         }
 
-        pthread_mutex_lock(&confirmation_lock);
-        command_confirmation_done = false;
-        command_confirmation_ok = false;
-        set_pdi_state_locked(PDI_WAIT_CONFIRMATION);
-        pthread_mutex_unlock(&confirmation_lock);
+        if (!begin_signal_confirmation()) {
+            printf(
+                "SCI-LS command cannot be started: "
+                "PDI is not established\n"
+            );
+
+            exit_code = 1;
+            break;
+        }
         
         result = cloud_ixl_scils_send_signal_aspect(scils, receiver, aspect);
 
@@ -1012,10 +1045,51 @@ int main(void){
             break;
         }
 
-        if (!wait_for_signal_confirmation()) {
-            exit_code = 1;
-        } else if(release_requested){
-            (void)release_route(&state, r_request.route_id);
+        CloudIxlPdiState command_result =
+            wait_for_signal_confirmation();
+
+        switch (command_result) {
+            case PDI_COMMAND_CONFIRMED:
+                printf("SCI-LS command confirmed\n");
+
+                if (release_requested) {
+                    (void)release_route(
+                        &state,
+                        r_request.route_id
+                    );
+                }
+                break;
+
+            case PDI_COMMAND_MISMATCH:
+                printf(
+                    "SCI-LS command not confirmed: "
+                    "reported vector does not match\n"
+                );
+                break;
+
+            case PDI_COMMAND_REJECTED:
+                printf(
+                    "SCI-LS command rejected by "
+                    "the Object Controller\n"
+                );
+                break;
+
+            case PDI_FAILED:
+                printf(
+                    "SCI-LS command failed because "
+                    "the PDI is no longer operational\n"
+                );
+                exit_code = 1;
+                break;
+
+            default:
+                printf(
+                    "Unexpected SCI-LS command result: %d\n",
+                    (int)command_result
+                );
+                set_pdi_state(PDI_FAILED);
+                exit_code = 1;
+                break;
         }
 
     }
