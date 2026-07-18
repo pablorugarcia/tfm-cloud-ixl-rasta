@@ -49,6 +49,7 @@ typedef enum {
 
 static CloudIxlPdiState pdi_state = PDI_DISCONNECTED;
 static pthread_mutex_t confirmation_lock = PTHREAD_MUTEX_INITIALIZER;
+static pthread_mutex_t receive_processing_lock = PTHREAD_MUTEX_INITIALIZER;
 static pthread_cond_t confirmation_condition = PTHREAD_COND_INITIALIZER;
 static sci_ls_icd_signal_vector expected_signal_vector;
 
@@ -474,7 +475,7 @@ static void print_signal_vector(const sci_ls_icd_signal_vector *vector)
     printf("\n");
 }
 
-void on_rasta_receive(struct rasta_notification_result *result)
+static void process_received_message(struct rasta_notification_result *result)
 {
     unsigned short message_type;
     rastaApplicationMessage message = sr_get_received_data(result->handle, &result->connection);
@@ -615,6 +616,12 @@ void on_rasta_receive(struct rasta_notification_result *result)
     rfree(telegram);
 
     scils_on_rasta_receive(scils, message);
+}
+
+void on_rasta_receive(struct rasta_notification_result *result){
+    pthread_mutex_lock(&receive_processing_lock);
+    process_received_message(result);
+    pthread_mutex_unlock(&receive_processing_lock);
 }
 
 static void on_connection_change(struct rasta_notification_result *result){
