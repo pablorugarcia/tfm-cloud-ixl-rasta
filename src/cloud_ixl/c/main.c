@@ -51,7 +51,7 @@ static CloudIxlPdiState pdi_state = PDI_DISCONNECTED;
 static pthread_mutex_t confirmation_lock = PTHREAD_MUTEX_INITIALIZER;
 static pthread_mutex_t receive_processing_lock = PTHREAD_MUTEX_INITIALIZER;
 static pthread_cond_t confirmation_condition = PTHREAD_COND_INITIALIZER;
-static sci_ls_icd_signal_vector expected_signal_vector;
+static sci_ls_icd_signal_aspect_payload expected_signal_aspect_payload;
 
 
 
@@ -466,11 +466,11 @@ static void on_brightness_status(
     scils_brightness brightness
 );
 
-static void print_signal_vector(const sci_ls_icd_signal_vector *vector)
+static void print_signal_aspect_payload(const sci_ls_icd_signal_aspect_payload *payload)
 {
-    printf("PDI: current signal vector:");
-    for (size_t i = 0; i < SCI_LS_ICD_SIGNAL_VECTOR_SIZE; i++) {
-        printf(" %02X", (unsigned int)vector->bytes[i]);
+    printf("PDI: current payload:");
+    for (size_t i = 0; i < SCI_LS_ICD_SIGNAL_ASPECT_PAYLOAD_SIZE; i++) {
+        printf(" %02X", (unsigned int)payload->bytes[i]);
     }
     printf("\n");
 }
@@ -588,8 +588,8 @@ static void process_received_message(struct rasta_notification_result *result)
 
     if (message_type == SCILS_MESSAGE_TYPE_SIGNAL_ASPECT_STATUS && waiting_for_signal_confirmation) {
 
-        sci_ls_icd_signal_vector reported_vector;
-        sci_ls_icd_parse_result parse_result = sci_ls_icd_parse_signal_aspect_status(telegram, &reported_vector);
+        sci_ls_icd_signal_aspect_payload reported_signal_aspect_payload;
+        sci_ls_icd_parse_result parse_result = sci_ls_icd_parse_signal_aspect_status(telegram, &reported_signal_aspect_payload);
         rfree(telegram);
 
         if (parse_result != SCI_LS_ICD_PARSE_SUCCESS) {
@@ -599,11 +599,11 @@ static void process_received_message(struct rasta_notification_result *result)
         }
 
         bool matched =
-            memcmp(expected_signal_vector.bytes, reported_vector.bytes, SCI_LS_ICD_SIGNAL_VECTOR_SIZE) == 0;
+            memcmp(expected_signal_aspect_payload.bytes, reported_signal_aspect_payload.bytes, SCI_LS_ICD_SIGNAL_ASPECT_PAYLOAD_SIZE) == 0;
 
         if (!matched) {
             printf("Command and message do not match\n");
-            print_signal_vector(&reported_vector);            
+            print_signal_aspect_payload(&reported_signal_aspect_payload);
         } else {
             printf("Command and message match\n");
         }
@@ -711,7 +711,7 @@ static void handle_icd_execution_error(
     const sci_ls_icd_execution_error *error)
 {
     printf("PDI: execution error received: 0x%02X (%s)\n", (unsigned int)error->error_code, execution_error_code_to_string(error->error_code));
-    print_signal_vector(&error->current_signal_vector);
+    print_signal_aspect_payload(&error->current_signal_aspect_payload);
     complete_signal_command(PDI_COMMAND_REJECTED);
 
 }
@@ -1009,7 +1009,7 @@ int main(void){
         }
 
         /*Corre la funcion build_signal_vector codificando el aspect a los bytes del vector y si falla sale del bucle*/
-        if (!cloud_ixl_build_signal_vector(aspect, expected_signal_vector.bytes)) {
+        if (!cloud_ixl_build_signal_aspect_payload(aspect, expected_signal_aspect_payload.bytes)) {
             printf("SCI-LS expected signal vector could not be built\n");
             exit_code = 1;
             break;

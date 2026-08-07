@@ -29,13 +29,12 @@ static bool is_icd_execution_error_code(unsigned char error_code)
 {
     return error_code == SCI_LS_ICD_EXECUTION_ERROR_LAMP_FAILURE ||
            error_code == SCI_LS_ICD_EXECUTION_ERROR_UNKNOWN_SIGNAL_VECTOR ||
-           error_code ==
-               SCI_LS_ICD_EXECUTION_ERROR_INVALID_HEADER_RECEIVER_OR_TYPE ||
+           error_code == SCI_LS_ICD_EXECUTION_ERROR_INVALID_HEADER_RECEIVER_OR_TYPE ||
            error_code == SCI_LS_ICD_EXECUTION_ERROR_INVALID_LUMINOSITY;
 }
 
-sci_ls_icd_parse_result sci_ls_icd_parse_signal_aspect_status(sci_telegram *telegram, sci_ls_icd_signal_vector *vector){
-    if(telegram == NULL || vector == NULL){
+sci_ls_icd_parse_result sci_ls_icd_parse_signal_aspect_status(sci_telegram *telegram, sci_ls_icd_signal_aspect_payload *payload){
+    if(telegram == NULL || payload == NULL){
         return SCI_LS_ICD_PARSE_INVALID_ARGUMENT;
     }
 
@@ -47,10 +46,10 @@ sci_ls_icd_parse_result sci_ls_icd_parse_signal_aspect_status(sci_telegram *tele
         return SCI_LS_ICD_PARSE_INVALID_MESSAGE_TYPE;
     }
 
-    if(telegram->payload.used_bytes != SCI_LS_ICD_SIGNAL_VECTOR_SIZE){
+    if(telegram->payload.used_bytes != SCI_LS_ICD_SIGNAL_ASPECT_PAYLOAD_SIZE){
         return SCI_LS_ICD_PARSE_INVALID_PAYLOAD_LENGTH;
     }
-    memcpy(vector->bytes, telegram->payload.data, SCI_LS_ICD_SIGNAL_VECTOR_SIZE);
+    memcpy(payload->bytes, telegram->payload.data, SCI_LS_ICD_SIGNAL_ASPECT_PAYLOAD_SIZE);
 
     return SCI_LS_ICD_PARSE_SUCCESS;
 }
@@ -114,9 +113,9 @@ sci_ls_icd_parse_result sci_ls_icd_parse_execution_error(
 
     error->error_code = telegram->payload.data[0];
     memcpy(
-        error->current_signal_vector.bytes,
+        error->current_signal_aspect_payload.bytes,
         &telegram->payload.data[1],
-        SCI_LS_ICD_SIGNAL_VECTOR_SIZE
+        SCI_LS_ICD_SIGNAL_ASPECT_PAYLOAD_SIZE
     );
 
     return SCI_LS_ICD_PARSE_SUCCESS;

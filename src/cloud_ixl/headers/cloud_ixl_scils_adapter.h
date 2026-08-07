@@ -11,7 +11,7 @@
 #include <sci_ls_icd.h>
 
 
-bool cloud_ixl_build_signal_vector(SignalAspect aspect, uint8_t vector[SCI_LS_ICD_SIGNAL_VECTOR_SIZE]);
+bool cloud_ixl_build_signal_aspect_payload(SignalAspect aspect, uint8_t payload[SCI_LS_ICD_SIGNAL_ASPECT_PAYLOAD_SIZE]);
 
 sci_telegram *cloud_ixl_create_signal_aspect_telegram(char *sender, char *receiver, SignalAspect aspect);
 

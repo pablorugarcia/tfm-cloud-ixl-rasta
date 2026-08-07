@@ -41,8 +41,8 @@ static bool is_supported_signal_aspect(SignalAspect aspect)
     }
 }
 
-bool cloud_ixl_build_signal_vector(SignalAspect aspect, uint8_t vector[SCI_LS_ICD_SIGNAL_VECTOR_SIZE]){
-    static const uint8_t signal_vectors[APAGADA + 1][SCI_LS_ICD_SIGNAL_VECTOR_SIZE] = {
+bool cloud_ixl_build_signal_aspect_payload(SignalAspect aspect, uint8_t payload[SCI_LS_ICD_SIGNAL_ASPECT_PAYLOAD_SIZE]){
+    static const uint8_t signal_aspect_payloads[APAGADA + 1][SCI_LS_ICD_SIGNAL_ASPECT_PAYLOAD_SIZE] = {
         [VIA_LIBRE] = {
             0x01, 0x00, 0x00, 0x00, 0x00, 0x00,
             0xFE, 0xFE, 0x01, 0xFE, 0xFE, 0xFE,
@@ -101,19 +101,19 @@ bool cloud_ixl_build_signal_vector(SignalAspect aspect, uint8_t vector[SCI_LS_IC
         }
     };
 
-    if(vector == NULL || !is_supported_signal_aspect(aspect)){
+    if(payload == NULL || !is_supported_signal_aspect(aspect)){
         return false;
     }
 
-    memcpy(vector, signal_vectors[aspect], SCI_LS_ICD_SIGNAL_VECTOR_SIZE);
+    memcpy(payload, signal_aspect_payloads[aspect], SCI_LS_ICD_SIGNAL_ASPECT_PAYLOAD_SIZE);
     return true;
 }
 
 
 sci_telegram *cloud_ixl_create_signal_aspect_telegram(char *sender, char *receiver, SignalAspect aspect){
-    uint8_t vector[SCI_LS_ICD_SIGNAL_VECTOR_SIZE];
+    uint8_t payload[SCI_LS_ICD_SIGNAL_ASPECT_PAYLOAD_SIZE];
 
-    if (!cloud_ixl_build_signal_vector(aspect, vector)) {
+    if (!cloud_ixl_build_signal_aspect_payload(aspect, payload)) {
         return NULL;
     }
     if (!is_valid_sci_name(sender) || !is_valid_sci_name(receiver)) {
@@ -125,9 +125,9 @@ sci_telegram *cloud_ixl_create_signal_aspect_telegram(char *sender, char *receiv
         return NULL;
     }
 
-    telegram->payload.used_bytes = SCI_LS_ICD_SIGNAL_VECTOR_SIZE;
+    telegram->payload.used_bytes = SCI_LS_ICD_SIGNAL_ASPECT_PAYLOAD_SIZE;
 
-    memcpy(telegram->payload.data, vector, SCI_LS_ICD_SIGNAL_VECTOR_SIZE);
+    memcpy(telegram->payload.data, payload, SCI_LS_ICD_SIGNAL_ASPECT_PAYLOAD_SIZE);
 
     return telegram;
 

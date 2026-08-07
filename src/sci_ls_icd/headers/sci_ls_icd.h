@@ -7,9 +7,9 @@
 
 #define SCI_LS_ICD_LUMINOSITY_STATUS_PAYLOAD_SIZE 1U
 
-#define SCI_LS_ICD_SIGNAL_VECTOR_SIZE 18U
-#define SCI_LS_ICD_EXECUTION_ERROR_PAYLOAD_SIZE \
-    (1U + SCI_LS_ICD_SIGNAL_VECTOR_SIZE)
+#define SCI_LS_ICD_SIGNAL_VECTOR_SIZE 6U
+#define SCI_LS_ICD_SIGNAL_ASPECT_PAYLOAD_SIZE 18U
+#define SCI_LS_ICD_EXECUTION_ERROR_PAYLOAD_SIZE (1U + SCI_LS_ICD_SIGNAL_ASPECT_PAYLOAD_SIZE)
 
 /*
  * The underlying SCI helper stores message types in host order before
@@ -30,6 +30,10 @@ typedef struct {
 } sci_ls_icd_signal_vector;
 
 typedef struct {
+    unsigned char bytes[SCI_LS_ICD_SIGNAL_ASPECT_PAYLOAD_SIZE];
+} sci_ls_icd_signal_aspect_payload;
+
+typedef struct {
     unsigned char requested_version;
     unsigned char supported_version;
     sci_version_check_result result;
@@ -37,7 +41,7 @@ typedef struct {
 
 typedef struct {
     unsigned char error_code;
-    sci_ls_icd_signal_vector current_signal_vector;
+    sci_ls_icd_signal_aspect_payload current_signal_aspect_payload;
 } sci_ls_icd_execution_error;
 
 typedef enum {
@@ -52,7 +56,7 @@ typedef enum {
 sci_ls_icd_parse_result
 sci_ls_icd_parse_signal_aspect_status(
     sci_telegram *telegram,
-    sci_ls_icd_signal_vector *vector
+    sci_ls_icd_signal_aspect_payload *payload
 );
 
 sci_ls_icd_parse_result sci_ls_icd_parse_luminosity_status(
