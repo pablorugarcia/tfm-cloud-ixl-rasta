@@ -16,6 +16,18 @@ repository:
 This is a PoC implementation and a repeatable local integration test. It is not
 a normative SCI-LS, EULYNX, RaSTA, EN 50159, or SIL4 compliance claim.
 
+### Repository layout
+
+* `src/` contains the Cloud IXL, the SCI-LS ICD adapter, the RaSTA/SCI
+  libraries, and the local OC simulator used by the main integration.
+* `config/` contains the Cloud IXL and local OC configurations used by that
+  integration.
+* `tests/` contains the CUnit tests for the underlying RaSTA and SCI libraries.
+* `docs/` contains the architecture, ICD, EULYNX reference documents, and
+  thesis material.
+* `extra/` contains optional examples, diagnostics, Java integration, legacy
+  build tooling, and the historical RaSTA Docker demonstration.
+
 ### Interface values used in the local test
 
 | Item | Cloud IXL | Pedro OC |
@@ -235,23 +247,23 @@ laboratory prototype test.
 
 ### Unit tests
 
-see [CUnit HowTo](md_doc/cunit.md)  
+see [CUnit HowTo](extra/docs/rasta-study/md_doc/cunit.md)
 
 ### Gradle
 
-see [Gradle HowTo](md_doc/gradle.md)  
+see [Gradle HowTo](extra/docs/rasta-study/md_doc/gradle.md)
 
 ### How to use the RaSTA library
 
-see [Getting started](md_doc/getting_started.md)  
+see [Getting started](extra/docs/rasta-study/md_doc/getting_started.md)
 
 ### Raspberry Pi / ARM architecture
 
-see [Building on Raspberry Pi](md_doc/raspberry_pi.md)
+see [Building on Raspberry Pi](extra/docs/rasta-study/md_doc/raspberry_pi.md)
 
 ### Docker
 
-see [Docker HowTo](md_doc/docker.md)
+see [Docker HowTo](extra/docs/rasta-study/md_doc/docker.md)
 
 ## Built With
 

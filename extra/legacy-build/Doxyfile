@@ -754,7 +754,7 @@ WARN_LOGFILE           =
 # spaces.
 # Note: If this tag is empty the current directory is searched.
 
-INPUT                  = src/rasta/headers src/sci/headers
+INPUT                  = src/rasta/headers src/sci/headers extra/protocols/scip/headers
 
 # This tag can be used to specify the character encoding of the source files
 # that doxygen parses. Internally doxygen uses the UTF-8 encoding. Doxygen uses
@@ -822,7 +822,7 @@ EXCLUDE_SYMBOLS        =
 # that contain example code fragments that are included (see the \include
 # command).
 
-EXAMPLE_PATH           = src/rasta_example/c
+EXAMPLE_PATH           = extra/examples/rasta_remote/c
 
 # If the value of the EXAMPLE_PATH tag contains directories, you can use the
 # EXAMPLE_PATTERNS tag to specify one or more wildcard pattern (like *.cpp and
@@ -890,7 +890,7 @@ FILTER_SOURCE_PATTERNS =
 # (index.html). This can be useful if you have a project on for instance GitHub
 # and want to reuse the introduction page also for the doxygen output.
 
-INPUT += README.md md_doc/cunit.md md_doc/gradle.md md_doc/getting_started.md
+INPUT += README.md extra/docs/rasta-study/md_doc/cunit.md extra/docs/rasta-study/md_doc/gradle.md extra/docs/rasta-study/md_doc/getting_started.md
 USE_MDFILE_AS_MAINPAGE = README.md
 
 #---------------------------------------------------------------------------

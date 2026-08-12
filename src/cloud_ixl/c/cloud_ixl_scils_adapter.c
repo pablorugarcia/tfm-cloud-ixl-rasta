@@ -3,7 +3,6 @@
 #include <cloud_ixl_types.h>
 #include <cloud_ixl_scils_adapter.h>
 #include <sci_telegram_factory.h>
-#include <scils_telegram_factory.h>
 #include <scils.h>
 #include <rmemory.h>
 #include <sci_ls_icd.h>
@@ -15,12 +14,6 @@ static bool is_valid_sci_name(const char *name)
     return name != NULL &&
            name[0] != '\0' &&
            strlen(name) <= SCI_NAME_LENGTH;
-}
-
-static bool is_valid_icd_luminosity(scils_brightness luminosity)
-{
-    return luminosity == SCILS_BRIGHTNESS_DAY ||
-           luminosity == SCILS_BRIGHTNESS_NIGHT;
 }
 
 static bool is_supported_signal_aspect(SignalAspect aspect)
@@ -120,7 +113,12 @@ sci_telegram *cloud_ixl_create_signal_aspect_telegram(char *sender, char *receiv
         return NULL;
     }
 
-    sci_telegram * telegram = sci_create_base_telegram(SCI_PROTOCOL_LS, sender, receiver, SCILS_MESSAGE_TYPE_SHOW_SIGNAL_ASPECT);
+    sci_telegram * telegram = sci_create_base_telegram(
+        SCI_PROTOCOL_LS,
+        sender,
+        receiver,
+        SCI_LS_ICD_MESSAGE_TYPE_SHOW_SIGNAL_ASPECT
+    );
     if (telegram == NULL) {
         return NULL;
     }
@@ -159,17 +157,16 @@ CloudIxlScilsSendResult cloud_ixl_scils_send_signal_aspect(scils_t *scils, char 
 CloudIxlScilsSendResult cloud_ixl_scils_send_luminosity(
     scils_t *scils,
     char *receiver,
-    scils_brightness luminosity)
+    unsigned char luminosity)
 {
     if (scils == NULL ||
         !is_valid_sci_name(scils->sciName) ||
-        !is_valid_sci_name(receiver) ||
-        !is_valid_icd_luminosity(luminosity)) {
+        !is_valid_sci_name(receiver)) {
         return CLOUD_IXL_SCILS_BUILD_ERROR;
     }
 
     sci_telegram *telegram =
-        scils_create_change_brightness(
+        sci_ls_icd_create_luminosity_command(
             scils->sciName,
             receiver,
             luminosity

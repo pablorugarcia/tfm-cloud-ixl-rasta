@@ -3,7 +3,6 @@
 
 #include <sci.h>
 #include <sci_telegram_factory.h>
-#include <scils_telegram_factory.h>
 #include <sci_ls_icd.h>
 
 static bool is_valid_sci_name(const char *name)
@@ -42,7 +41,7 @@ sci_ls_icd_parse_result sci_ls_icd_parse_signal_aspect_status(sci_telegram *tele
         return SCI_LS_ICD_PARSE_INVALID_PROTOCOL;
     }
 
-    if(sci_get_message_type(telegram) != SCILS_MESSAGE_TYPE_SIGNAL_ASPECT_STATUS){
+    if(sci_get_message_type(telegram) != SCI_LS_ICD_MESSAGE_TYPE_SIGNAL_ASPECT_STATUS){
         return SCI_LS_ICD_PARSE_INVALID_MESSAGE_TYPE;
     }
 
@@ -67,7 +66,7 @@ sci_ls_icd_parse_result sci_ls_icd_parse_luminosity_status(
     }
 
     if (sci_get_message_type(telegram) !=
-        SCILS_MESSAGE_TYPE_SIGNAL_BRIGHTNESS_STATUS) {
+        SCI_LS_ICD_MESSAGE_TYPE_LUMINOSITY_STATUS) {
         return SCI_LS_ICD_PARSE_INVALID_MESSAGE_TYPE;
     }
 
@@ -83,6 +82,35 @@ sci_ls_icd_parse_result sci_ls_icd_parse_luminosity_status(
     *luminosity = telegram->payload.data[0];
 
     return SCI_LS_ICD_PARSE_SUCCESS;
+}
+
+sci_telegram *sci_ls_icd_create_luminosity_command(
+    char *sender,
+    char *receiver,
+    unsigned char luminosity)
+{
+    if (!is_valid_sci_name(sender) ||
+        !is_valid_sci_name(receiver) ||
+        !is_icd_luminosity(luminosity)) {
+        return NULL;
+    }
+
+    sci_telegram *telegram = sci_create_base_telegram(
+        SCI_PROTOCOL_LS,
+        sender,
+        receiver,
+        SCI_LS_ICD_MESSAGE_TYPE_CHANGE_LUMINOSITY
+    );
+
+    if (telegram == NULL) {
+        return NULL;
+    }
+
+    telegram->payload.used_bytes =
+        SCI_LS_ICD_LUMINOSITY_COMMAND_PAYLOAD_SIZE;
+    telegram->payload.data[0] = luminosity;
+
+    return telegram;
 }
 
 sci_ls_icd_parse_result sci_ls_icd_parse_execution_error(

@@ -26,7 +26,7 @@ CloudIxlScilsSendResult cloud_ixl_scils_send_signal_aspect(scils_t *scils, char 
 CloudIxlScilsSendResult cloud_ixl_scils_send_luminosity(
     scils_t *scils,
     char *receiver,
-    scils_brightness luminosity
+    unsigned char luminosity
 );
 
 #endif

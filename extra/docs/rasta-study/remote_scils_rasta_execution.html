@@ -197,7 +197,7 @@ footer { max-width:1380px; margin:0 auto; padding:0 18px 28px; color:var(--muted
     <div>
       <div class="eyebrow">Escenario remoto / Docker · no localhost</div>
       <h1>Árbol completo de ejecución RaSTA/SCI-LS remoto</h1>
-      <p class="subtitle">Mapa interactivo de cómo el script Docker, la configuración remota, el ejemplo SCI-LS, las factories SCI y el núcleo RaSTA se encadenan desde <code>./rasta-docker.sh server scils</code> y <code>./rasta-docker.sh client1 scils</code> hasta el flujo SHOW/STATUS.</p>
+      <p class="subtitle">Mapa interactivo de cómo el script Docker, la configuración remota, el ejemplo SCI-LS, las factories SCI y el núcleo RaSTA se encadenan desde <code>./extra/docker-rasta-demo/rasta-docker.sh server scils</code> y <code>./extra/docker-rasta-demo/rasta-docker.sh client1 scils</code> hasta el flujo SHOW/STATUS.</p>
       <div class="quick">
         <button type="button" data-jump="docker-script">Empezar en Docker</button>
         <button type="button" data-jump="server-main">Rol servidor</button>
@@ -312,12 +312,12 @@ footer { max-width:1380px; margin:0 auto; padding:0 18px 28px; color:var(--muted
           <article class="detail-card">
             <h3>1. Creación del aspecto por defecto</h3>
             <p><code>scils_signal_aspect_defaults()</code> reserva memoria con <code>rmalloc(sizeof(scils_signal_aspect))</code> y rellena los diez campos del struct. El comportamiento probado en el repositorio deja conceptos apagados o sin información, y <code>dark_switching</code> en <code>SCILS_DARK_SWITCHING_SHOW</code>.</p>
-            <p>Evidencia: <code>src/sci/c/scils_telegram_factory.c:6</code> y <code>src/sciTest/c/scilsTests.c:8</code>.</p>
+            <p>Evidencia: <code>src/sci/c/scils_telegram_factory.c:6</code> y <code>tests/sci/c/scilsTests.c:8</code>.</p>
           </article>
           <article class="detail-card">
             <h3>2. Conversión de default a HP0</h3>
             <p>El callback <code>onHandshakeComplete()</code> no construye un struct desde cero. Primero toma los defaults y luego solo cambia <code>signal_aspect-&gt;main</code> a <code>SCILS_MAIN_HP_0</code>. El resto queda igual: additional, ZS3, ZS3v, ZS2, ZS2v apagados; driveway sin información; dark switching en SHOW.</p>
-            <p>Evidencia: <code>src/scils_example/c/main.c:34</code> a <code>src/scils_example/c/main.c:37</code>.</p>
+            <p>Evidencia: <code>extra/examples/scils_remote/c/main.c:34</code> a <code>extra/examples/scils_remote/c/main.c:37</code>.</p>
           </article>
           <article class="detail-card">
             <h3>3. Valor real de SCILS_MAIN_HP_0</h3>
@@ -478,20 +478,20 @@ const groups = {
 };
 
 const nodes = [
-  { id:'docker-script', group:'docker', x:40, y:40, title:'Script de orquestacion', code:'./rasta-docker.sh build/server/client1', file:'rasta-docker.sh:3', why:'Crea la red Docker, construye la imagen y arranca los contenedores que ejecutan los binarios remotos.', input:'Argumentos build, server scils, client1 scils.', output:'Red rastanet, imagen rastac, contenedores y comandos docker exec.', evidence:'Usa --build-arg SERVER_CH1=10.10.10.100 y ejecuta ./scils_example s/c.' },
-  { id:'docker-network', group:'docker', x:300, y:40, title:'Red Docker remota', code:'rastanet 10.10.10.0/24', file:'rasta-docker.sh:6', why:'Define el dominio IP donde se comunican servidor y cliente en remoto.', input:'docker network create.', output:'Subnet 10.10.10.0/24 usada por los contenedores.', evidence:'--subnet=10.10.10.0/24 --ip-range=10.10.10.0/24.' },
-  { id:'build-args', group:'docker', x:560, y:40, title:'Build args IP', code:'SERVER_CH1, SERVER_CH2, CLIENT1_CH1...', file:'rasta-docker.sh:10', why:'Inyecta las IPs finales dentro del build de la imagen.', input:'Valores 10.10.10.100/110/120.', output:'ARG disponibles en Dockerfile.', evidence:'SERVER_CH1 y SERVER_CH2 sustituyen los placeholders 10.0.0.100/101.' },
-  { id:'dockerfile-sed', group:'build', x:820, y:40, title:'Sustitucion cfg', code:'sed -i s/10.0.0.x/$ARG/g', file:'Dockerfile:24', why:'Convierte los .cfg remotos copiados a la imagen en configuracion Docker real.', input:'config/*.cfg con placeholders 10.0.0.x.', output:'cfg internos con 10.10.10.x.', evidence:'Modifica /opt/rasta-c/config/rasta_server.cfg y clientes antes de CMake.' },
-  { id:'cmake-remote', group:'build', x:820, y:150, title:'Build remoto CMake', code:'BUILD_REMOTE_EXAMPLES + EXAMPLE_IP_OVERRIDE', file:'CMakeLists.txt:129', why:'Compila los binarios remotos y copia los .cfg remotos al directorio build.', input:'Dockerfile ejecuta cmake -DEXAMPLE_IP_OVERRIDE:BOOL=ON.', output:'scils_example, scip_example, rasta_example y cfg remotos en build.', evidence:'configure_file(config/rasta_server.cfg rasta_server.cfg COPYONLY).' },
-  { id:'remote-binaries', group:'build', x:560, y:150, title:'Binarios remotos', code:'./scils_example s / ./scils_example c', file:'CMakeLists.txt:136', why:'Son los ejecutables que mezcla el script Docker con SCI-LS remoto.', input:'Codigo src/scils_example/c/main.c.', output:'Proceso servidor o cliente segun argumento.', evidence:'rasta-docker.sh ejecuta cd .../examples && ./scils_example s/c.' },
+  { id:'docker-script', group:'docker', x:40, y:40, title:'Script de orquestacion', code:'./extra/docker-rasta-demo/rasta-docker.sh build/server/client1', file:'extra/docker-rasta-demo/rasta-docker.sh:3', why:'Crea la red Docker, construye la imagen y arranca los contenedores que ejecutan los binarios remotos.', input:'Argumentos build, server scils, client1 scils.', output:'Red rastanet, imagen rastac, contenedores y comandos docker exec.', evidence:'Usa --build-arg SERVER_CH1=10.10.10.100 y ejecuta ./scils_example s/c.' },
+  { id:'docker-network', group:'docker', x:300, y:40, title:'Red Docker remota', code:'rastanet 10.10.10.0/24', file:'extra/docker-rasta-demo/rasta-docker.sh:6', why:'Define el dominio IP donde se comunican servidor y cliente en remoto.', input:'docker network create.', output:'Subnet 10.10.10.0/24 usada por los contenedores.', evidence:'--subnet=10.10.10.0/24 --ip-range=10.10.10.0/24.' },
+  { id:'build-args', group:'docker', x:560, y:40, title:'Build args IP', code:'SERVER_CH1, SERVER_CH2, CLIENT1_CH1...', file:'extra/docker-rasta-demo/rasta-docker.sh:10', why:'Inyecta las IPs finales dentro del build de la imagen.', input:'Valores 10.10.10.100/110/120.', output:'ARG disponibles en Dockerfile.', evidence:'SERVER_CH1 y SERVER_CH2 sustituyen los placeholders 10.0.0.100/101.' },
+  { id:'dockerfile-sed', group:'build', x:820, y:40, title:'Sustitucion cfg', code:'sed -i s/10.0.0.x/$ARG/g', file:'extra/docker-rasta-demo/Dockerfile:24', why:'Convierte los .cfg remotos copiados a la imagen en configuracion Docker real.', input:'config/*.cfg con placeholders 10.0.0.x.', output:'cfg internos con 10.10.10.x.', evidence:'Modifica /opt/rasta-c/extra/config/examples/rasta_server.cfg y clientes antes de CMake.' },
+  { id:'cmake-remote', group:'build', x:820, y:150, title:'Build remoto CMake', code:'BUILD_REMOTE_EXAMPLES + BUILD_SCIP_SUPPORT + EXAMPLE_IP_OVERRIDE', file:'CMakeLists.txt:210', why:'Compila los binarios remotos y copia los .cfg remotos al directorio build.', input:'Dockerfile activa los ejemplos remotos, SCI-P y la sustitucion de IP.', output:'scils_example, scip_example, rasta_example y cfg remotos en build.', evidence:'configure_file(extra/config/examples/rasta_server.cfg rasta_server.cfg COPYONLY).' },
+  { id:'remote-binaries', group:'build', x:560, y:150, title:'Binarios remotos', code:'./scils_example s / ./scils_example c', file:'CMakeLists.txt:136', why:'Son los ejecutables que mezcla el script Docker con SCI-LS remoto.', input:'Codigo extra/examples/scils_remote/c/main.c.', output:'Proceso servidor o cliente segun argumento.', evidence:'rasta-docker.sh ejecuta cd .../examples && ./scils_example s/c.' },
 
-  { id:'server-cfg', group:'config', x:40, y:190, title:'Config servidor', code:'RASTA_REDUNDANCY_CONNECTIONS', file:'config/rasta_server.cfg:75', why:'Define los endpoints en los que el servidor escucha despues de la sustitucion Docker.', input:'Placeholders 10.0.0.100:8888 y 10.0.0.101:8889.', output:'Dentro de Docker queda 10.10.10.100:8888/8889.', evidence:'La funcion config_load parsea este array y RedMux hace bind.' },
-  { id:'client-cfg', group:'config', x:300, y:190, title:'Config cliente', code:'config/rasta_client1.cfg', file:'config/rasta_client1.cfg:74', why:'Define el ID y puertos locales del cliente remoto SCI-LS.', input:'Placeholders 10.0.0.200/201.', output:'Dentro de Docker queda 10.10.10.110:8890/8891.', evidence:'El cliente carga CONFIG_PATH_C antes de sr_connect().' },
-  { id:'env-server', group:'config', x:560, y:260, title:'Destino por entorno', code:'getenv("SERVER_CH1")', file:'src/scils_example/c/main.c:72', why:'El cliente remoto no usa 10.0.0.100 literal cuando EXAMPLE_IP_OVERRIDE esta activo.', input:'ENV SERVER_CH1 y SERVER_CH2 del Dockerfile.', output:'toServer[0/1].ip para sr_connect().', evidence:'strcpy(toServer[0].ip, getenv("SERVER_CH1")).' },
+  { id:'server-cfg', group:'config', x:40, y:190, title:'Config servidor', code:'RASTA_REDUNDANCY_CONNECTIONS', file:'extra/config/examples/rasta_server.cfg:75', why:'Define los endpoints en los que el servidor escucha despues de la sustitucion Docker.', input:'Placeholders 10.0.0.100:8888 y 10.0.0.101:8889.', output:'Dentro de Docker queda 10.10.10.100:8888/8889.', evidence:'La funcion config_load parsea este array y RedMux hace bind.' },
+  { id:'client-cfg', group:'config', x:300, y:190, title:'Config cliente', code:'extra/config/examples/rasta_client1.cfg', file:'extra/config/examples/rasta_client1.cfg:74', why:'Define el ID y puertos locales del cliente remoto SCI-LS.', input:'Placeholders 10.0.0.200/201.', output:'Dentro de Docker queda 10.10.10.110:8890/8891.', evidence:'El cliente carga CONFIG_PATH_C antes de sr_connect().' },
+  { id:'env-server', group:'config', x:560, y:260, title:'Destino por entorno', code:'getenv("SERVER_CH1")', file:'extra/examples/scils_remote/c/main.c:72', why:'El cliente remoto no usa 10.0.0.100 literal cuando EXAMPLE_IP_OVERRIDE esta activo.', input:'ENV SERVER_CH1 y SERVER_CH2 del Dockerfile.', output:'toServer[0/1].ip para sr_connect().', evidence:'strcpy(toServer[0].ip, getenv("SERVER_CH1")).' },
 
-  { id:'server-main', group:'app', x:40, y:330, title:'Entrada servidor', code:'main(argv[1] == "s")', file:'src/scils_example/c/main.c:84', why:'Arranca el rol servidor SCI-LS remoto y carga rasta_server.cfg.', input:'./scils_example s.', output:'Handle RaSTA iniciado, callbacks registrados e instancia SCI-LS "S".', evidence:'sr_init_handle(&h, CONFIG_PATH_S); scils_init(&h, SCI_NAME_S).' },
-  { id:'client-main', group:'app', x:300, y:330, title:'Entrada cliente', code:'main(argv[1] == "c")', file:'src/scils_example/c/main.c:94', why:'Arranca el rol cliente SCI-LS remoto, conecta al servidor y registra el nombre SCI "S".', input:'./scils_example c.', output:'sr_connect hacia ID_S y canales SERVER_CH1/2.', evidence:'sr_init_handle(&h, CONFIG_PATH_C); sr_connect(&h, ID_S, toServer).' },
-  { id:'callbacks-app', group:'app', x:560, y:370, title:'Callbacks aplicacion', code:'onReceive, onHandshakeComplete, onShowSignalAspect', file:'src/scils_example/c/main.c:25', why:'Conectan eventos RaSTA con la fachada SCI-LS y con la demo SHOW/STATUS.', input:'Notificaciones de RaSTA y callbacks SCI-LS.', output:'SHOW desde cliente, STATUS desde servidor y decodificacion de recepcion.', evidence:'onReceive llama scils_on_rasta_receive(); onShowSignalAspect responde STATUS.' },
+  { id:'server-main', group:'app', x:40, y:330, title:'Entrada servidor', code:'main(argv[1] == "s")', file:'extra/examples/scils_remote/c/main.c:84', why:'Arranca el rol servidor SCI-LS remoto y carga rasta_server.cfg.', input:'./scils_example s.', output:'Handle RaSTA iniciado, callbacks registrados e instancia SCI-LS "S".', evidence:'sr_init_handle(&h, CONFIG_PATH_S); scils_init(&h, SCI_NAME_S).' },
+  { id:'client-main', group:'app', x:300, y:330, title:'Entrada cliente', code:'main(argv[1] == "c")', file:'extra/examples/scils_remote/c/main.c:94', why:'Arranca el rol cliente SCI-LS remoto, conecta al servidor y registra el nombre SCI "S".', input:'./scils_example c.', output:'sr_connect hacia ID_S y canales SERVER_CH1/2.', evidence:'sr_init_handle(&h, CONFIG_PATH_C); sr_connect(&h, ID_S, toServer).' },
+  { id:'callbacks-app', group:'app', x:560, y:370, title:'Callbacks aplicacion', code:'onReceive, onHandshakeComplete, onShowSignalAspect', file:'extra/examples/scils_remote/c/main.c:25', why:'Conectan eventos RaSTA con la fachada SCI-LS y con la demo SHOW/STATUS.', input:'Notificaciones de RaSTA y callbacks SCI-LS.', output:'SHOW desde cliente, STATUS desde servidor y decodificacion de recepcion.', evidence:'onReceive llama scils_on_rasta_receive(); onShowSignalAspect responde STATUS.' },
 
   { id:'sr-init', group:'rasta', x:40, y:500, title:'Inicializacion SR', code:'sr_init_handle()', file:'src/rasta/c/rasta_new.c:1581', why:'Carga configuracion, crea RedMux, prepara hashing y arranca hilos RaSTA.', input:'Ruta CONFIG_PATH_S o CONFIG_PATH_C.', output:'handle operativo con mux abierto y hilos de recepcion/heartbeat/envio.', evidence:'rasta_handle_init(); redundancy_mux_init_(); sr_start().' },
   { id:'handle-init', group:'rasta', x:300, y:500, title:'Handle RaSTA', code:'rasta_handle_init()', file:'src/rasta/c/rastahandle.c:385', why:'Carga el fichero cfg, logger, versiones aceptadas y punteros de callbacks.', input:'rasta_server.cfg o rasta_client1.cfg.', output:'h->config.values y callbacks inicializados.', evidence:'h->config = config_load(config_file_path).' },
@@ -502,7 +502,7 @@ const nodes = [
   { id:'scils-init', group:'sci', x:40, y:610, title:'Instancia SCI-LS', code:'scils_init()', file:'src/sci/c/scils.c:38', why:'Crea la fachada SCI-LS, guarda el handle RaSTA y prepara el mapa SCI name -> RaSTA ID.', input:'handle y SCI_NAME_S/SCI_NAME_C.', output:'scils_t con callbacks SCI-LS inicializados a NULL.', evidence:'scils->rasta_handle = handle; hashmap_new().' },
   { id:'sr-connect', group:'rasta', x:300, y:610, title:'Conexion cliente', code:'sr_connect(&h, ID_S, toServer)', file:'src/rasta/c/rasta_new.c:1612', why:'Crea canal al servidor y emite la ConnectionRequest RaSTA.', input:'ID_S=0x61 y toServer con SERVER_CH1/2.', output:'Canal redundante, conexion cliente y ConReq enviada.', evidence:'redundancy_mux_add_channel(); createConnectionRequest(); redundancy_mux_send().' },
   { id:'red-send', group:'red', x:560, y:610, title:'Envio redundante', code:'redundancy_mux_send()', file:'src/rasta/c/rasta_red_multiplexer.c:795', why:'Convierte la PDU RaSTA en PDU de redundancia y la manda por cada canal UDP.', input:'RastaPacket ConReq/DATA/HB.', output:'Datagramas UDP hacia IP:puerto remoto.', evidence:'createRedundancyPacket(); rastaRedundancyPacketToBytes(); udp_send().' },
-  { id:'handshake-callback', group:'app', x:820, y:610, title:'Handshake completo', code:'onHandshakeComplete()', file:'src/scils_example/c/main.c:30', why:'Cuando el cliente llega a UP, dispara la orden SHOW de SCI-LS.', input:'Notificacion RaSTA con my_id == ID_C.', output:'scils_send_show_signal_aspect(scils, "S", signal_aspect).', evidence:'El callback crea defaults, fuerza main=SCILS_MAIN_HP_0 y envia SHOW.' },
+  { id:'handshake-callback', group:'app', x:820, y:610, title:'Handshake completo', code:'onHandshakeComplete()', file:'extra/examples/scils_remote/c/main.c:30', why:'Cuando el cliente llega a UP, dispara la orden SHOW de SCI-LS.', input:'Notificacion RaSTA con my_id == ID_C.', output:'scils_send_show_signal_aspect(scils, "S", signal_aspect).', evidence:'El callback crea defaults, fuerza main=SCILS_MAIN_HP_0 y envia SHOW.' },
 
   { id:'show-defaults', group:'sci', x:40, y:720, title:'Defaults signal aspect', code:'scils_signal_aspect_defaults()', file:'src/sci/c/scils_telegram_factory.c:6', why:'Reserva y rellena todos los campos SCI-LS de aspecto antes de que la aplicacion cambie main a HP0.', input:'Sin parametros.', output:'scils_signal_aspect* con valores OFF/no information/show.', evidence:'rmalloc(sizeof(scils_signal_aspect)); main=SCILS_MAIN_OFF; dark_switching=SCILS_DARK_SWITCHING_SHOW.' },
   { id:'aspect-struct', group:'sci', x:300, y:830, title:'Struct signal aspect', code:'scils_signal_aspect', file:'src/sci/headers/scils_telegram_factory.h:163', why:'Define los diez campos de concepto de señal que las factories copian al payload.', input:'Enums scils_main, scils_additional, scils_zs3, scils_zs2, driveway y dark_switching.', output:'Contrato C interno usado por SHOW y STATUS.', evidence:'main, additional, zs3, zs3v, zs2, zs2v, deprecation_information, upstream/downstream_driveway_information, dark_switching.' },
@@ -518,12 +518,12 @@ const nodes = [
   { id:'receive-path', group:'rasta', x:1080, y:370, title:'Recepcion RaSTA', code:'receive thread -> onReceive()', file:'src/rasta/c/rasta_new.c:1154', why:'El receptor procesa PDUs, valida y entrega datos a la aplicacion mediante callback.', input:'Datagramas UDP convertidos a RastaPacket.', output:'rastaApplicationMessage disponible para sr_get_received_data().', evidence:'El ejemplo registra h.notifications.on_receive = onReceive.' },
   { id:'decode-scils', group:'sci', x:820, y:330, title:'Decode SCI-LS', code:'scils_on_rasta_receive()', file:'src/sci/c/scils.c:230', why:'Convierte bytes de aplicacion RaSTA a telegrama SCI y despacha por tipo.', input:'rastaApplicationMessage.', output:'Callback SCI-LS SHOW o STATUS.', evidence:'sci_decode_telegram(); switch(sci_get_message_type(parsed)).' },
   { id:'parse-show', group:'sci', x:560, y:940, title:'Parse SHOW', code:'scils_parse_show_signal_aspect_payload()', file:'src/sci/c/scils_telegram_factory.c:81', why:'Reconstruye un scils_signal_aspect desde los 9 bytes del payload SHOW recibido.', input:'sci_telegram de tipo 0x0100.', output:'signal_aspect para callback on_show_signal_aspect_received.', evidence:'Lee data[0..8] y separa driveway con mascaras 0x0F/0xF0.' },
-  { id:'status-response', group:'app', x:820, y:240, title:'Respuesta STATUS', code:'onShowSignalAspect()', file:'src/scils_example/c/main.c:48', why:'En el servidor remoto, el SHOW recibido se devuelve como SIGNAL_ASPECT_STATUS.', input:'sender y signal_aspect parseados.', output:'scils_send_signal_aspect_status(ls, sender, signal_aspect).', evidence:'Este comportamiento simula el OC; es demo, no validacion de campo.' },
+  { id:'status-response', group:'app', x:820, y:240, title:'Respuesta STATUS', code:'onShowSignalAspect()', file:'extra/examples/scils_remote/c/main.c:48', why:'En el servidor remoto, el SHOW recibido se devuelve como SIGNAL_ASPECT_STATUS.', input:'sender y signal_aspect parseados.', output:'scils_send_signal_aspect_status(ls, sender, signal_aspect).', evidence:'Este comportamiento simula el OC; es demo, no validacion de campo.' },
   { id:'send-status', group:'sci', x:820, y:940, title:'Enviar STATUS', code:'scils_send_signal_aspect_status()', file:'src/sci/c/scils.c:107', why:'Fachada equivalente a SHOW, pero para comunicar el aspecto reportado por el servidor.', input:'ls, sender original como receiver y signal_aspect recibido.', output:'SCI telegram hacia scils_send_telegram().', evidence:'scils_create_signal_aspect_status(ls->sciName, receiver, signal_aspect).' },
   { id:'status-factory', group:'sci', x:1080, y:940, title:'Payload STATUS 7 bytes', code:'scils_create_signal_aspect_status()', file:'src/sci/c/scils_telegram_factory.c:55', why:'Serializa el estado de aspecto reportado. Usa 7 bytes, no los 9 bytes completos de SHOW.', input:'sender servidor, receiver cliente y signal_aspect.', output:'Payload con main, additional, ZS*, dark_switching.', evidence:'used_bytes=7; no copia deprecation_information ni driveway.' },
   { id:'parse-status', group:'sci', x:820, y:1050, title:'Parse STATUS', code:'scils_parse_signal_aspect_status_payload()', file:'src/sci/c/scils_telegram_factory.c:103', why:'Reconstruye el estado reportado desde un payload STATUS de 7 bytes en el cliente.', input:'sci_telegram de tipo 0x0300.', output:'signal_aspect parcial para onSignalAspectStatus().', evidence:'Lee data[0..6], incluyendo main y dark_switching.' },
-  { id:'client-status', group:'app', x:1080, y:1050, title:'STATUS en cliente', code:'onSignalAspectStatus()', file:'src/scils_example/c/main.c:60', why:'El cliente imprime el estado recibido como retorno del comando SHOW.', input:'STATUS SCI-LS decodificado.', output:'printf con main mostrado.', evidence:'Received location status from %s. LS showing main = ...' },
-  { id:'nonlocal-risk', group:'risk', x:1080, y:190, title:'Limite remoto', code:'No es localhost, pero tampoco red independiente real', file:'rasta-docker.sh:11', why:'Docker usa IPs 10.10.10.x, pero los dos canales de cada rol comparten IP y se separan por puerto.', input:'SERVER_CH1=SERVER_CH2=10.10.10.100.', output:'Redundancia funcional de ejemplo, no prueba de independencia fisica.', evidence:'Misma IP para canal 1 y 2 en rasta-docker.sh.' }
+  { id:'client-status', group:'app', x:1080, y:1050, title:'STATUS en cliente', code:'onSignalAspectStatus()', file:'extra/examples/scils_remote/c/main.c:60', why:'El cliente imprime el estado recibido como retorno del comando SHOW.', input:'STATUS SCI-LS decodificado.', output:'printf con main mostrado.', evidence:'Received location status from %s. LS showing main = ...' },
+  { id:'nonlocal-risk', group:'risk', x:1080, y:190, title:'Limite remoto', code:'No es localhost, pero tampoco red independiente real', file:'extra/docker-rasta-demo/rasta-docker.sh:11', why:'Docker usa IPs 10.10.10.x, pero los dos canales de cada rol comparten IP y se separan por puerto.', input:'SERVER_CH1=SERVER_CH2=10.10.10.100.', output:'Redundancia funcional de ejemplo, no prueba de independencia fisica.', evidence:'Misma IP para canal 1 y 2 en rasta-docker.sh.' }
 ];
 
 const edges = [
@@ -540,8 +540,8 @@ const edges = [
 ];
 
 const deepNodes = [
-  { id:'deep-main-s', group:'app', x:40, y:40, title:'main servidor', code:'argv[1] == "s"', file:'src/scils_example/c/main.c:84', why:'Selecciona el rol servidor remoto, carga CONFIG_PATH_S y registra callbacks de aplicacion.', input:'./scils_example s.', output:'sr_init_handle(), scils_init("S") y callback on_show_signal_aspect.', evidence:'sr_init_handle(&h, CONFIG_PATH_S); scils = scils_init(&h, SCI_NAME_S).' },
-  { id:'deep-main-c', group:'app', x:40, y:160, title:'main cliente', code:'argv[1] == "c"', file:'src/scils_example/c/main.c:94', why:'Selecciona el rol cliente remoto, carga CONFIG_PATH_C, conecta y registra SCI_NAME_S.', input:'./scils_example c.', output:'sr_init_handle(), sr_connect(), scils_init("C") y scils_register_sci_name().', evidence:'sr_connect(&h, ID_S, toServer); scils_register_sci_name(scils, SCI_NAME_S, ID_S).' },
+  { id:'deep-main-s', group:'app', x:40, y:40, title:'main servidor', code:'argv[1] == "s"', file:'extra/examples/scils_remote/c/main.c:84', why:'Selecciona el rol servidor remoto, carga CONFIG_PATH_S y registra callbacks de aplicacion.', input:'./scils_example s.', output:'sr_init_handle(), scils_init("S") y callback on_show_signal_aspect.', evidence:'sr_init_handle(&h, CONFIG_PATH_S); scils = scils_init(&h, SCI_NAME_S).' },
+  { id:'deep-main-c', group:'app', x:40, y:160, title:'main cliente', code:'argv[1] == "c"', file:'extra/examples/scils_remote/c/main.c:94', why:'Selecciona el rol cliente remoto, carga CONFIG_PATH_C, conecta y registra SCI_NAME_S.', input:'./scils_example c.', output:'sr_init_handle(), sr_connect(), scils_init("C") y scils_register_sci_name().', evidence:'sr_connect(&h, ID_S, toServer); scils_register_sci_name(scils, SCI_NAME_S, ID_S).' },
   { id:'deep-sr-init', group:'rasta', x:300, y:90, title:'sr_init_handle', code:'sr_init_handle(handle,cfg)', file:'src/rasta/c/rasta_new.c:1581', why:'Punto de entrada de inicializacion RaSTA desde fichero de configuracion.', input:'Puntero a struct rasta_handle y ruta cfg.', output:'Handle cargado, mux creado, hashing preparado y threads arrancados.', evidence:'Llama rasta_handle_init(), redundancy_mux_init_(), rasta_md4_set_key() y sr_start().' },
   { id:'deep-handle-init', group:'rasta', x:560, y:20, title:'rasta_handle_init', code:'config + logger + handles', file:'src/rasta/c/rastahandle.c:385', why:'Inicializa la estructura principal antes de abrir transporte y hilos.', input:'config_file_path.', output:'h->config, h->logger, callbacks NULL, hashing_context, subhandles.', evidence:'h->config = config_load(config_file_path).' },
   { id:'deep-redmux-init', group:'red', x:560, y:150, title:'redundancy_mux_init_', code:'RedMux desde config', file:'src/rasta/c/rasta_red_multiplexer.c:503', why:'Crea la capa de redundancia/UDP asociada al handle.', input:'handle->config.values.', output:'mux con sockets, canales conectados y parametros de redundancia.', evidence:'mux.port_count = config.redundancy.connections.count.' },
@@ -616,7 +616,7 @@ const timeline = [
 ];
 
 const snippets = [
-  { id:'script', label:'rasta-docker.sh', node:'docker-script', code:String.raw`# Red y build remoto
+  { id:'script', label:'extra/docker-rasta-demo/rasta-docker.sh', node:'docker-script', code:String.raw`# Red y build remoto
 docker network create --driver=bridge --ip-range=10.10.10.0/24 --subnet=10.10.10.0/24 rastanet
 
 docker build \
@@ -631,24 +631,28 @@ docker run -di --network rastanet --ip 10.10.10.110 --name rasta-client1 rastac
 
 docker exec -it rasta-server  /bin/sh -c "cd /opt/rasta-c/build/bin/exe/examples && ./scils_example s"
 docker exec -it rasta-client1 /bin/sh -c "cd /opt/rasta-c/build/bin/exe/examples && ./scils_example c"` },
-  { id:'dockerfile', label:'Dockerfile', node:'dockerfile-sed', code:String.raw`ARG SERVER_CH1
+  { id:'dockerfile', label:'extra/docker-rasta-demo/Dockerfile', node:'dockerfile-sed', code:String.raw`ARG SERVER_CH1
 ARG SERVER_CH2
 ARG CLIENT1_CH1
 ARG CLIENT1_CH2
 
-RUN sed -i -e "s/10.0.0.100/$SERVER_CH1/g" /opt/rasta-c/config/rasta_server.cfg &&\
-    sed -i -e "s/10.0.0.101/$SERVER_CH2/g" /opt/rasta-c/config/rasta_server.cfg &&\
-    sed -i -e "s/10.0.0.200/$CLIENT1_CH1/g" /opt/rasta-c/config/rasta_client1.cfg &&\
-    sed -i -e "s/10.0.0.201/$CLIENT1_CH2/g" /opt/rasta-c/config/rasta_client1.cfg
+RUN sed -i -e "s/10.0.0.100/$SERVER_CH1/g" /opt/rasta-c/extra/config/examples/rasta_server.cfg &&\
+    sed -i -e "s/10.0.0.101/$SERVER_CH2/g" /opt/rasta-c/extra/config/examples/rasta_server.cfg &&\
+    sed -i -e "s/10.0.0.200/$CLIENT1_CH1/g" /opt/rasta-c/extra/config/examples/rasta_client1.cfg &&\
+    sed -i -e "s/10.0.0.201/$CLIENT1_CH2/g" /opt/rasta-c/extra/config/examples/rasta_client1.cfg
 
-RUN cd /opt/rasta-c/ && mkdir -p build && cd build && cmake -DEXAMPLE_IP_OVERRIDE:BOOL=ON .. && make` },
+RUN cmake -S /opt/rasta-c -B /opt/rasta-c/build \
+    -DBUILD_REMOTE_EXAMPLES=ON \
+    -DBUILD_SCIP_SUPPORT=ON \
+    -DEXAMPLE_IP_OVERRIDE=ON && \
+    cmake --build /opt/rasta-c/build` },
   { id:'cmake', label:'CMake remoto', node:'cmake-remote', code:String.raw`if(BUILD_REMOTE_EXAMPLES)
   add_executable(scils_example
-      src/scils_example/c/main.c)
+      extra/examples/scils_remote/c/main.c)
   target_link_libraries(scils_example rasta)
 
-  configure_file(config/rasta_server.cfg rasta_server.cfg COPYONLY)
-  configure_file(config/rasta_client1.cfg rasta_client1.cfg COPYONLY)
+  configure_file(extra/config/examples/rasta_server.cfg rasta_server.cfg COPYONLY)
+  configure_file(extra/config/examples/rasta_client1.cfg rasta_client1.cfg COPYONLY)
 
   if (EXAMPLE_IP_OVERRIDE)
     add_compile_definitions(EXAMPLE_IP_OVERRIDE)
@@ -870,22 +874,22 @@ struct RastaByteArray sci_encode_telegram(sci_telegram * telegram){
 ];
 
 const fileGroups = [
-  ['Orquestacion Docker','rasta-docker.sh','Crea red, imagen, contenedores y ejecuta scils_example s/c.'],
-  ['Imagen y sustitucion','Dockerfile','Copia config, aplica sed a IPs remotas y compila con EXAMPLE_IP_OVERRIDE.'],
+  ['Orquestacion Docker','extra/docker-rasta-demo/rasta-docker.sh','Crea red, imagen, contenedores y ejecuta scils_example s/c.'],
+  ['Imagen y sustitucion','extra/docker-rasta-demo/Dockerfile','Copia config, aplica sed a IPs remotas y compila con EXAMPLE_IP_OVERRIDE.'],
   ['Build remoto','CMakeLists.txt','Define scils_example y copia rasta_server.cfg/rasta_client1.cfg al build.'],
-  ['Entrada SCI-LS remota','src/scils_example/c/main.c','Selecciona rol, inicializa RaSTA, registra callbacks, conecta y lanza SHOW.'],
-  ['Configs remotos','config/rasta_server.cfg · config/rasta_client1.cfg','IDs, tiempos, checksum SR, CRC redundancia, endpoints y logger.'],
+  ['Entrada SCI-LS remota','extra/examples/scils_remote/c/main.c','Selecciona rol, inicializa RaSTA, registra callbacks, conecta y lanza SHOW.'],
+  ['Configs remotos','extra/config/examples/rasta_server.cfg · extra/config/examples/rasta_client1.cfg','IDs, tiempos, checksum SR, CRC redundancia, endpoints y logger.'],
   ['Fachada SCI-LS','src/sci/c/scils.c · src/sci/headers/scils.h','API de envio, recepcion, callbacks y mapa SCI name -> RaSTA ID.'],
   ['Factories SCI-LS','src/sci/c/scils_telegram_factory.c · src/sci/headers/scils_telegram_factory.h','Define enums/structs y construye/parsea SHOW y SIGNAL_ASPECT_STATUS.'],
   ['SCI comun','src/sci/c/sci.c · src/sci/c/sci_telegram_factory.c','Cabecera SCI, sender/receiver, tipo de mensaje y encoding/decoding.'],
   ['RaSTA SR','src/rasta/c/rasta_new.c','Conexion, handshake, colas, heartbeat, envio y recepcion de DATA.'],
   ['Handle/config','src/rasta/c/rastahandle.c · src/rasta/c/config.c','Carga cfg, logger, versiones y estructuras runtime.'],
   ['Redundancia/UDP','src/rasta/c/rasta_red_multiplexer.c · src/rasta/c/rastaredundancy_new.c · src/rasta/c/udp.c','Canales redundantes, PDU de redundancia, sockets y envio UDP.'],
-  ['Tests SCI-LS','src/sciTest/c/scilsTests.c','Comprueba defaults, bytes esperados de SHOW/STATUS y parseo de signal_aspect.']
+  ['Tests SCI-LS','tests/sci/c/scilsTests.c','Comprueba defaults, bytes esperados de SHOW/STATUS y parseo de signal_aspect.']
 ];
 
 const checks = [
-  ['No mezclar remoto con local','El flujo de esta pagina usa src/scils_example/c/main.c y config/rasta_server.cfg/config/rasta_client1.cfg. No usa src/examples_localhost/c/scils.c ni *_local.cfg.'],
+  ['No mezclar remoto con local','El flujo de esta pagina usa extra/examples/scils_remote/c/main.c y extra/config/examples/rasta_server.cfg/extra/config/examples/rasta_client1.cfg. No usa extra/examples/localhost/c/scils.c ni *_local.cfg.'],
   ['No convertirlo en afirmacion normativa','La pagina describe un PoC de laboratorio. No demuestra cumplimiento SIL4, EN 50159, EULYNX ni RaSTA.'],
   ['Canales Docker no son independencia fisica','SERVER_CH1 y SERVER_CH2 comparten IP en el script actual. La separacion es por puerto dentro del mismo contenedor.'],
   ['SCI-LS y RaSTA son capas distintas','SCI-LS crea payloads de aplicacion; RaSTA/SR transporta bytes con conexion, secuencia, heartbeat y retransmision.'],

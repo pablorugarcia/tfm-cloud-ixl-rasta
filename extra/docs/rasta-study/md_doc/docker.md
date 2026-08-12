@@ -6,7 +6,7 @@ There are, however, some limitations compared to using Gradle as the Docker imag
 - RaSTA Wrapper for JNI is not compiled
 
 ### Dockerfile
-The Dockerfile in the root of the repository is used builds the library and the SCI-LS, SCI-P, and RaSTA example.
+The Dockerfile at `extra/docker-rasta-demo/Dockerfile` builds the library and the SCI-LS, SCI-P, and RaSTA examples.
 Each of them with configuration for running on localhost and on different network nodes.
 
 For the configuration the can be executed on systems in a network, the IPs for the server and client(s) can be specified
@@ -35,12 +35,12 @@ They can be executed manually once a container is created, e.g.
 ``` 
 
 #### Helper Script
-Instead of building the image and running the examples manually , the `rasta-docker.sh` script can be used.
+Instead of building the image and running the examples manually, the `extra/docker-rasta-demo/rasta-docker.sh` script can be used from the repository root.
 It allows to build the images and run the examples using simple commands.
 
 Build image and create containers for server, client1, client2
 ```shell script
->>> ./rasta-docker.sh build
+>>> ./extra/docker-rasta-demo/rasta-docker.sh build
 ```
 This will also setup a network between the containers and configure the IPs for the examples so they can communicate.
 Note that running this command will delete the containers and recreate them if they already exist.
@@ -48,7 +48,7 @@ Note that running this command will delete the containers and recreate them if t
 
 Run examples by
 ```shell script
->>> ./rasta-docker.sh CONTAINER [EXAMPLE]
+>>> ./extra/docker-rasta-demo/rasta-docker.sh CONTAINER [EXAMPLE]
 ```
 where `CONTAINER` can be either `server`, `client1`, or `client2`.
 `EXAMPLE` specifies the example run. Possible options are `scils`, `scip`, or `rasta`.
@@ -58,7 +58,7 @@ When `EXAMPLE` is not specified, a Shell is opened in the specified container.
 
 All three containers can be stopped using
 ```shell script
->>> ./rasta-docker.sh stop
+>>> ./extra/docker-rasta-demo/rasta-docker.sh stop
 ```
 The containers do not have to be started manually, the script will take care of it automatically.
 
@@ -66,11 +66,11 @@ The containers do not have to be started manually, the script will take care of 
 Example: Running the SCI-LS example
 ```shell script
 # if not already executed once
->>> ./rasta-docker.sh build
+>>> ./extra/docker-rasta-demo/rasta-docker.sh build
 
 # run server
->>> ./rasta-docker.sh server scils
+>>> ./extra/docker-rasta-demo/rasta-docker.sh server scils
 
 # run client in another terminal
->>> ./rasta-docker.sh client1 scils
+>>> ./extra/docker-rasta-demo/rasta-docker.sh client1 scils
 ```

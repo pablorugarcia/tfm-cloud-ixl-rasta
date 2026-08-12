@@ -1,3 +1,7 @@
+/*
+ * Legacy upstream Gradle build retained for historical reference.
+ * The main Cloud IXL/OC build is the root CMakeLists.txt project.
+ */
 apply plugin: 'c'
 apply plugin: 'cunit-test-suite'
 
@@ -152,7 +156,7 @@ task staticAnalysis() {
     doLast {
         exec {
             executable "cppcheck"
-            args "--enable=performance,information", "src/rasta/c", "src/rastaTest/c", "src/scip/c", "src/scipTest/c", "-I", "src/rasta/headers", "src/rastaTest/headers", "src/scip/headers", "src/scipTest/headers"
+            args "--enable=performance,information", "src/rasta/c", "tests/rasta/c", "src/sci/c", "tests/sci/c", "-I", "src/rasta/headers", "tests/rasta/headers", "src/sci/headers", "tests/sci/headers"
         }
     }
 }
@@ -176,7 +180,7 @@ task genDoc() {
     doLast {
         exec {
             executable "doxygen"
-            args "Doxyfile"
+            args "extra/legacy-build/Doxyfile"
         }
     }
 }

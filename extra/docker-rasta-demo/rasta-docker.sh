@@ -14,6 +14,7 @@ if [ "$1" == "build" ]; then
        --build-arg CLIENT1_CH2="10.10.10.110" \
        --build-arg CLIENT2_CH1="10.10.10.120" \
        --build-arg CLIENT2_CH2="10.10.10.120" \
+       -f extra/docker-rasta-demo/Dockerfile \
        -t rastac .
 
 
@@ -92,10 +93,10 @@ elif [ "$1" == "stop" ]; then
     docker stop rasta-client2
 else
   echo "Usage:"
-  echo "./rasta-docker.sh build"
+  echo "./extra/docker-rasta-demo/rasta-docker.sh build"
   echo "      Builds the image and creates the containers"
-  echo "./rasta-docker.sh stop"
+  echo "./extra/docker-rasta-demo/rasta-docker.sh stop"
   echo "      Stops all RaSTA containers"
-  echo "./rasta-docker.sh (server|client1|client2) [EXAMPLE]"
+  echo "./extra/docker-rasta-demo/rasta-docker.sh (server|client1|client2) [EXAMPLE]"
   echo "      Executes the example (scils/scip/rasta) in the given container. If no example is passed, a shell is opened"
 fi

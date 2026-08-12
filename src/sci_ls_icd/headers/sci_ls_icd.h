@@ -5,6 +5,7 @@
 
 #define SCI_LS_ICD_VERSION_RESPONSE_PAYLOAD_SIZE 3U
 
+#define SCI_LS_ICD_LUMINOSITY_COMMAND_PAYLOAD_SIZE 1U
 #define SCI_LS_ICD_LUMINOSITY_STATUS_PAYLOAD_SIZE 1U
 
 #define SCI_LS_ICD_SIGNAL_VECTOR_SIZE 6U
@@ -12,9 +13,13 @@
 #define SCI_LS_ICD_EXECUTION_ERROR_PAYLOAD_SIZE (1U + SCI_LS_ICD_SIGNAL_ASPECT_PAYLOAD_SIZE)
 
 /*
- * The underlying SCI helper stores message types in host order before
- * encoding, so 0x0700 is transmitted on the wire as ICD message 0x0007.
+ * The SCI helper stores message types in host order before encoding. For
+ * example, 0x0700 is transmitted on the wire as ICD message type 0x0007.
  */
+#define SCI_LS_ICD_MESSAGE_TYPE_SHOW_SIGNAL_ASPECT 0x0100U
+#define SCI_LS_ICD_MESSAGE_TYPE_CHANGE_LUMINOSITY 0x0200U
+#define SCI_LS_ICD_MESSAGE_TYPE_SIGNAL_ASPECT_STATUS 0x0300U
+#define SCI_LS_ICD_MESSAGE_TYPE_LUMINOSITY_STATUS 0x0400U
 #define SCI_LS_ICD_MESSAGE_TYPE_EXECUTION_ERROR 0x0700U
 
 #define SCI_LS_ICD_EXECUTION_ERROR_LAMP_FAILURE 0x01U
@@ -62,6 +67,12 @@ sci_ls_icd_parse_signal_aspect_status(
 sci_ls_icd_parse_result sci_ls_icd_parse_luminosity_status(
     sci_telegram *telegram,
     unsigned char *luminosity
+);
+
+sci_telegram *sci_ls_icd_create_luminosity_command(
+    char *sender,
+    char *receiver,
+    unsigned char luminosity
 );
 
 /*

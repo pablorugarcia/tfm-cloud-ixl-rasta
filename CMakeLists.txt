@@ -5,10 +5,14 @@ set(CMAKE_C_STANDARD 11)
 
 SET(USE_OPENSSL false CACHE BOOL "Use OpenSSL MD4 implementation")
 
-option(BUILD_LOCAL_EXAMPLES "Build the RaSTA/SCI examples the run on localhost" ON)
-option(BUILD_REMOTE_EXAMPLES "Build the RaSTA/SCI examples that communicate in a network" ON)
+# Optional targets: none of these are required for the main Cloud IXL -> OC connection. They remain available for laboratory diagnostics and examples, but are excluded from the default TFM build.
+option(BUILD_OC_SIMULATOR "Build the local Object Controller simulator" OFF)
+option(BUILD_SCIP_SUPPORT "Build optional SCI-P support for point controllers" OFF)
+option(BUILD_LOCAL_EXAMPLES "Build the optional localhost examples" OFF)
+option(BUILD_REMOTE_EXAMPLES "Build the optional network examples" OFF)
 option(EXAMPLE_IP_OVERRIDE "Use IPs from environment variables in RaSTA/SCI examples" OFF)
 
+# Only used by the optional `cmake --install` packaging rule below. It does not participate in the Cloud IXL -> OC runtime path.
 include(GNUInstallDirs)
 
 include_directories(
@@ -46,9 +50,6 @@ add_library(rasta SHARED
         src/sci/headers/sci.h
         src/sci/headers/sci_telegram_factory.h
         src/sci/headers/scils.h
-        src/sci/headers/scils_telegram_factory.h
-        src/sci/headers/scip.h
-        src/sci/headers/scip_telegram_factory.h
         # RaSTA sources
         src/rasta/c/config.c
         src/rasta/c/dictionary.c
@@ -75,10 +76,21 @@ add_library(rasta SHARED
         src/sci/c/sci.c
         src/sci/c/sci_telegram_factory.c
         src/sci/c/scils.c
-        src/sci/c/scils_telegram_factory.c
-        src/sci/c/scip.c
-        src/sci/c/scip_telegram_factory.c
         )
+
+# OPTIONAL: SCI-P belongs to point controllers and is not part of the
+# Cloud IXL -> Light Signal OC path. Keep it available for the point examples.
+if(BUILD_SCIP_SUPPORT)
+    target_sources(rasta PRIVATE
+            extra/protocols/scip/c/scip.c
+            extra/protocols/scip/c/scip_telegram_factory.c
+    )
+
+    target_include_directories(rasta PUBLIC
+            extra/protocols/scip/headers
+    )
+endif()
+
 # Link system libraries for librasta
 target_link_libraries(rasta rt pthread)
 
@@ -94,7 +106,7 @@ else()
     message("Using rasta-c MD4 implementation")
 endif()
 
-# Installation for library
+# OPTIONAL: packaging/install rule for librasta. It is not executed by a normal configure or build and is not required to run cloud_ixl.
 install(TARGETS rasta
         LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}
         PUBLIC_HEADER DESTINATION ${CMAKE_INSTALL_INCLUDEDIR})
@@ -102,6 +114,7 @@ install(TARGETS rasta
 # Enable optimization for RaSTA
 target_compile_options(rasta PRIVATE -O3 -Wall -Wextra -Wpedantic -Werror)
 
+# ----- Cloud IXL part for Masters' Thesis -----
 add_library(sci_ls_icd STATIC
         src/sci_ls_icd/c/sci_ls_icd.c
 )
@@ -145,63 +158,68 @@ target_compile_options(cloud_ixl PRIVATE
 
 configure_file(config/rasta_client1_lab.cfg rasta_client1_lab.cfg COPYONLY)
 
-add_executable(oc_simulator
-        src/oc_simulator/c/main.c
-)
+# OPTIONAL: useful for a self-contained local test, but not used when Cloud IXL
+# connects by IP to Pedro's real or separately executed Object Controller.
+if(BUILD_OC_SIMULATOR)
+    add_executable(oc_simulator
+            src/oc_simulator/c/main.c
+    )
 
-target_link_libraries(oc_simulator rasta sci_ls_icd)
+    target_link_libraries(oc_simulator rasta sci_ls_icd)
 
-target_compile_options(oc_simulator PRIVATE
-        -Wall
-        -Wextra
-        -Wpedantic
-        -Werror
-)
+    target_compile_options(oc_simulator PRIVATE
+            -Wall
+            -Wextra
+            -Wpedantic
+            -Werror
+    )
+endif()
+# ----- End of Master Thesis Part -----
 
+# OPTIONAL: standalone localhost examples from extra/examples/. They do not
+# participate in the Cloud IXL -> OC execution path. The legacy SCI-LS
+# examples use the retired 7/9-byte aspect API and are not build targets.
 if(BUILD_LOCAL_EXAMPLES)
-	# scip_example on localhost
-	add_executable(scip_example_local
-		    src/examples_localhost/c/scip.c)
-	target_link_libraries(scip_example_local rasta)
+	# SCI-P example: only available when optional point support is enabled.
+	if(BUILD_SCIP_SUPPORT)
+		add_executable(scip_example_local
+			    extra/examples/localhost/c/scip.c)
+		target_link_libraries(scip_example_local rasta)
+	endif()
 
-
-	# scils_example on localhost
-	add_executable(scils_example_local
-		    src/examples_localhost/c/scils.c)
-	target_link_libraries(scils_example_local rasta)
 
 	# rasta_example_new on localhost
 	add_executable(rasta_example_local
-		    src/examples_localhost/c/rasta.c)
+		    extra/examples/localhost/c/rasta.c)
 	target_link_libraries(rasta_example_local rasta)
 	
 	# Copy RaSTA configs to build directory
 	configure_file(config/rasta_server_local.cfg rasta_server_local.cfg COPYONLY)
 	configure_file(config/rasta_client1_local.cfg rasta_client1_local.cfg COPYONLY)
-	configure_file(config/rasta_client2_local.cfg rasta_client2_local.cfg COPYONLY)
+	configure_file(extra/config/examples/rasta_client2_local.cfg rasta_client2_local.cfg COPYONLY)
 endif(BUILD_LOCAL_EXAMPLES)
 
+# OPTIONAL: standalone network examples from extra/examples/. They demonstrate
+# RaSTA/SCI in isolation and are not the Cloud IXL executable. The legacy
+# SCI-LS example is not a build target for the same reason noted above.
 if(BUILD_REMOTE_EXAMPLES)
-	# scip_example
-	add_executable(scip_example
-		    src/scip_example/c/main.c)
-	target_link_libraries(scip_example rasta)
+	# SCI-P example: only available when optional point support is enabled.
+	if(BUILD_SCIP_SUPPORT)
+		add_executable(scip_example
+			    extra/examples/scip_remote/c/main.c)
+		target_link_libraries(scip_example rasta)
+	endif()
 
-
-	# scils_example
-	add_executable(scils_example
-		    src/scils_example/c/main.c)
-	target_link_libraries(scils_example rasta)
 
 	# rasta_example_new
 	add_executable(rasta_example
-		    src/rasta_example_new/c/main.c)
+		    extra/examples/rasta_remote/c/main.c)
 	target_link_libraries(rasta_example rasta)
 	
 	# Copy RaSTA configs to build directory
-	configure_file(config/rasta_server.cfg rasta_server.cfg COPYONLY)
-	configure_file(config/rasta_client1.cfg rasta_client1.cfg COPYONLY)
-	configure_file(config/rasta_client2.cfg rasta_client2.cfg COPYONLY)
+	configure_file(extra/config/examples/rasta_server.cfg rasta_server.cfg COPYONLY)
+	configure_file(extra/config/examples/rasta_client1.cfg rasta_client1.cfg COPYONLY)
+	configure_file(extra/config/examples/rasta_client2.cfg rasta_client2.cfg COPYONLY)
 
 	if (EXAMPLE_IP_OVERRIDE)
 		add_compile_definitions(EXAMPLE_IP_OVERRIDE)

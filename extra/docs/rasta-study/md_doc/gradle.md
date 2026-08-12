@@ -1,5 +1,5 @@
-# HowTo - Gradle
-Gradle is the build tool we use to compile the project, execute unit tests and a lot of other tasks such as creating the Doxygen documentation. In this section you will learn how to use Gradle to run tasks and how to edit the Gradle config file.
+# HowTo - Gradle (legacy)
+This historical workflow was used to compile the upstream RaSTA project, execute CUnit tests, and create Doxygen documentation. The main Cloud IXL/OC build now uses CMake; the retained build file is `extra/legacy-build/build.gradle` and has not been validated with current Gradle versions.
 
 ## Using gradle
 You can execute a named task by typing
@@ -20,7 +20,7 @@ See the next section for available tasks.
 
 ## Adding a new executable to Gradle
 Assume that you created a program that uses the RaSTA library. You should have created a directory inside `src/` with subdirctories `c/`and (optionally) `headers/`. Inside you `src/<yourprogramname>/c/`should be a file with a `main` function.  
-Gradle will not automatically compile your project when you execute `gradle build`. You have to specify that inside the `build.gradle` in the project root directory.  
+Gradle will not automatically compile your project when you execute `gradle build`. You have to specify that inside `extra/legacy-build/build.gradle`.  
 Although the config file might look pretty complicated at first, it's pretty easy.  
 There is a `components` container inside the `model` container.
 ```

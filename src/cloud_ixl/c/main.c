@@ -31,7 +31,7 @@
 #define OC_RASTA_ID 0x61UL
 #define OC_SCI_NAME "LS_OC"
 #define IXL_SCI_NAME "IXL_CENTRAL"
-#define DEFAULT_SIGNAL_LUMINOSITY SCILS_BRIGHTNESS_DAY
+#define DEFAULT_SIGNAL_LUMINOSITY SCI_LS_ICD_LUMINOSITY_DAY
 
 typedef enum {
     PDI_DISCONNECTED, /*there is no conection*/
@@ -460,11 +460,11 @@ static void handle_icd_execution_error(
     const sci_ls_icd_execution_error *error
 );
 
-static void on_brightness_status(
-    scils_t *ls,
-    char *sender,
-    scils_brightness brightness
+static void on_initial_aspect_status(
+    const sci_ls_icd_signal_aspect_payload *payload
 );
+
+static void on_brightness_status(unsigned char brightness);
 
 static void print_signal_aspect_payload(const sci_ls_icd_signal_aspect_payload *payload)
 {
@@ -533,7 +533,7 @@ static void process_received_message(struct rasta_notification_result *result)
     }
 
     if (message_type ==
-            SCILS_MESSAGE_TYPE_SIGNAL_BRIGHTNESS_STATUS) {
+            SCI_LS_ICD_MESSAGE_TYPE_LUMINOSITY_STATUS) {
 
         unsigned char luminosity;
         sci_ls_icd_parse_result parse_result =
@@ -552,11 +552,7 @@ static void process_received_message(struct rasta_notification_result *result)
             return;
         }
 
-        on_brightness_status(
-            scils,
-            telegram->sender,
-            (scils_brightness)luminosity
-        );
+        on_brightness_status(luminosity);
         rfree(telegram);
         return;
     }
@@ -586,7 +582,7 @@ static void process_received_message(struct rasta_notification_result *result)
         return;
     }
 
-    if (message_type == SCILS_MESSAGE_TYPE_SIGNAL_ASPECT_STATUS && waiting_for_signal_confirmation) {
+    if (message_type == SCI_LS_ICD_MESSAGE_TYPE_SIGNAL_ASPECT_STATUS) {
 
         sci_ls_icd_signal_aspect_payload reported_signal_aspect_payload;
         sci_ls_icd_parse_result parse_result = sci_ls_icd_parse_signal_aspect_status(telegram, &reported_signal_aspect_payload);
@@ -595,6 +591,11 @@ static void process_received_message(struct rasta_notification_result *result)
         if (parse_result != SCI_LS_ICD_PARSE_SUCCESS) {
             printf("PDI: invalid parse signal aspect status: %d\n", (int)parse_result);
             fail_pending_signal_confirmation();
+            return;
+        }
+
+        if (!waiting_for_signal_confirmation) {
+            on_initial_aspect_status(&reported_signal_aspect_payload);
             return;
         }
 
@@ -762,26 +763,22 @@ static void on_initialisation_start(scils_t *ls, char *sender){
     }
 }
 
-static void on_aspect_status(scils_t *ls, char *sender, scils_signal_aspect aspect){
-    (void)ls;
-    (void)sender;
-
+static void on_initial_aspect_status(
+    const sci_ls_icd_signal_aspect_payload *payload)
+{
     if (!require_pdi_state(PDI_RECEIVING_INITIAL_STATUS)) {
         printf("PDI: aspect status received in an invalid state\n");
         return;
     }
 
-    printf("PDI: signal aspect status received, main=0x%02X\n", (unsigned int)aspect.main);
+    printf(
+        "PDI: signal aspect status received, basic aspect=0x%02X\n",
+        (unsigned int)payload->bytes[0]
+    );
 }
 
-static void on_brightness_status(
-    scils_t *ls,
-    char *sender,
-    scils_brightness brightness)
+static void on_brightness_status(unsigned char brightness)
 {
-    (void)ls;
-    (void)sender;
-
     bool valid_state;
     pthread_mutex_lock(&confirmation_lock);
 
@@ -820,16 +817,16 @@ static void on_initialisation_completed(scils_t *ls, char *sender)
     printf("PDI: initialisation completed\n");
 }
 
-static scils_brightness scils_brightness_from_signal_luminosity(
+static unsigned char icd_luminosity_from_signal_luminosity(
     SignalLuminosity luminosity)
 {
     switch (luminosity) {
         case SIGNAL_LUMINOSITY_NIGHT:
-            return SCILS_BRIGHTNESS_NIGHT;
+            return SCI_LS_ICD_LUMINOSITY_NIGHT;
 
         case SIGNAL_LUMINOSITY_DAY:
         default:
-            return SCILS_BRIGHTNESS_DAY;
+            return SCI_LS_ICD_LUMINOSITY_DAY;
     }
 }
 
@@ -880,8 +877,6 @@ int main(void){
     scils_register_sci_name(scils, OC_SCI_NAME, OC_RASTA_ID); /*convierte "LS_OC" al formato SCI fijo de 20 caracteres, con _ de relleno*/
 
     scils->notifications.on_status_begin_received = on_initialisation_start;
-    scils->notifications.on_signal_aspect_status_received = on_aspect_status;
-    scils->notifications.on_brightness_status_received = on_brightness_status;
     scils->notifications.on_status_finish_received = on_initialisation_completed;
     
     set_pdi_state(PDI_WAIT_RASTA_HANDSHAKE);
@@ -946,8 +941,8 @@ int main(void){
         }
 
         if(r_request.command == ROUTE_COMMAND_LUMINOSITY){
-            scils_brightness luminosity =
-                scils_brightness_from_signal_luminosity(
+            unsigned char luminosity =
+                icd_luminosity_from_signal_luminosity(
                     r_request.luminosity
                 );
 
