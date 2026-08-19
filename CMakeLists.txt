@@ -2,6 +2,7 @@ cmake_minimum_required(VERSION 3.6.2)
 project(rasta C)
 
 set(CMAKE_C_STANDARD 11)
+include(CTest)
 
 SET(USE_OPENSSL false CACHE BOOL "Use OpenSSL MD4 implementation")
 
@@ -113,6 +114,16 @@ install(TARGETS rasta
 
 # Enable optimization for RaSTA
 target_compile_options(rasta PRIVATE -O3 -Wall -Wextra -Wpedantic -Werror)
+
+if(BUILD_TESTING)
+    add_executable(rastadeferqueue_regression_test
+            tests/rasta/c/rastadeferqueue_regression_test.c)
+    target_link_libraries(rastadeferqueue_regression_test PRIVATE rasta)
+    target_compile_options(rastadeferqueue_regression_test PRIVATE
+            -Wall -Wextra -Wpedantic -Werror)
+    add_test(NAME rastadeferqueue_regression
+             COMMAND rastadeferqueue_regression_test)
+endif()
 
 # ----- Cloud IXL part for Masters' Thesis -----
 add_library(sci_ls_icd STATIC

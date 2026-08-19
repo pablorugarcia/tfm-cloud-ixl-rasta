@@ -6,6 +6,7 @@
 #include <string.h>
 #include "rastaredundancy_new.h"
 #include "rastautil.h"
+#include "udp.h"
 
 void rasta_red_init(rasta_redundancy_channel *channel, struct logger_t *logger, struct RastaConfigInfo *config, unsigned int transport_channel_count,
                                         unsigned long id){
@@ -56,6 +57,10 @@ void rasta_red_init(rasta_redundancy_channel *channel, struct logger_t *logger, 
     logger_log(channel->logger, LOG_LEVEL_DEBUG, "RaSTA Red init", "space for %d connected channels", transport_channel_count);
 #endif // PIKEOS_TOOLCHAIN
     channel->connected_channels = rmalloc(transport_channel_count * sizeof(rasta_transport_channel));
+    if (channel->connected_channels != NULL) {
+        rmemset(channel->connected_channels, 0,
+                transport_channel_count * sizeof(rasta_transport_channel));
+    }
     channel->connected_channel_count = 0;
     channel->transport_channel_count = transport_channel_count;
 }
@@ -107,12 +112,12 @@ void deliverDeferQueue(rasta_redundancy_channel * channel){
 
         // increase seq_rx
         channel->seq_rx = channel->seq_rx +1;
-        pthread_mutex_unlock(&channel->channel_lock);
     }
 #ifndef PIKEOS_TOOLCHAIN
     logger_log(channel->logger, LOG_LEVEL_DEBUG, "RaSTA Red deliver deferq", "deferq doesn't contain seq_pdu=%d",
                channel->seq_rx);
 #endif // PIKEOS_TOOLCHAIN
+    pthread_mutex_unlock(&channel->channel_lock);
 }
 
 void rasta_red_f_receive(rasta_redundancy_channel * channel, struct RastaRedundancyPacket* packet, int channel_id){
@@ -208,6 +213,7 @@ void rasta_red_f_receive(rasta_redundancy_channel * channel, struct RastaRedunda
         // deliver message to upper layer
         pthread_mutex_unlock(&channel->channel_lock);
         deliverDeferQueue(channel);
+        return;
     } else if (channel->seq_rx < packet->sequence_number
                && packet->sequence_number <= (channel->seq_rx + channel->configuration_parameters.n_deferqueue_size * 10)){
 #ifndef PIKEOS_TOOLCHAIN
@@ -264,6 +270,11 @@ void rasta_red_f_deferTmo(rasta_redundancy_channel * channel){
     // find smallest seq_pdu in defer queue
     int smallest_index = deferqueue_smallest_seqnr(&channel->defer_q);
 
+    if (smallest_index < 0) {
+        pthread_mutex_unlock(&channel->channel_lock);
+        return;
+    }
+
     // set seq_rx to it
     channel->seq_rx = channel->defer_q.elements[smallest_index].packet->sequence_number;
     pthread_mutex_unlock(&channel->channel_lock);
@@ -276,8 +287,12 @@ void rasta_red_add_transport_channel(rasta_redundancy_channel * channel, char * 
     rasta_transport_channel transport_channel;
 
     transport_channel.port = port;
-    transport_channel.ip_address = rmalloc(sizeof(char) * 15);
-    rmemcpy(transport_channel.ip_address, ip, 15);
+    transport_channel.ip_address = rmalloc(IPV4_STR_LEN);
+    if (transport_channel.ip_address == NULL) {
+        return;
+    }
+    strncpy(transport_channel.ip_address, ip, IPV4_STR_LEN - 1U);
+    transport_channel.ip_address[IPV4_STR_LEN - 1U] = '\0';
 
     channel->connected_channels[channel->connected_channel_count] = transport_channel;
     channel->connected_channel_count++;

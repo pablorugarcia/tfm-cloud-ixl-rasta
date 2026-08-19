@@ -79,12 +79,24 @@ struct redundancy_mux{
     /**
      * the redundancy channels to remote entities this multiplexer is aware of
      */
-    rasta_redundancy_channel * connected_channels;
+    rasta_redundancy_channel ** connected_channels;
 
     /**
      * the amount of known redundancy channels, i.e. the length of connected_channels
      */
     unsigned int channel_count;
+
+    /**
+     * channels removed from the active list. Their storage remains valid until
+     * the multiplexer is closed so pointers already returned to callers cannot
+     * become dangling.
+     */
+    rasta_redundancy_channel ** retired_channels;
+
+    /**
+     * the amount of channels waiting to be released during close
+     */
+    unsigned int retired_channel_count;
 
     /**
      * 1 if the redundancy multiplexer is active, 0 otherwise

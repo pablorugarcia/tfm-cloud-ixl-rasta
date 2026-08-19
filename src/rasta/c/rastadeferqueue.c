@@ -1,6 +1,79 @@
 #include <stdlib.h>
+#include <string.h>
 #include "rmemory.h"
 #include "rastadeferqueue.h"
+
+static void free_packet_copy(struct RastaRedundancyPacket *packet) {
+    if (packet == NULL) {
+        return;
+    }
+
+    freeRastaByteArray(&packet->data.data);
+    packet->data.data.bytes = NULL;
+    freeRastaByteArray(&packet->data.checksum);
+    packet->data.checksum.bytes = NULL;
+    rfree(packet);
+}
+
+static int copy_byte_array(struct RastaByteArray *destination,
+                           const struct RastaByteArray *source) {
+    destination->bytes = NULL;
+    destination->length = 0;
+
+    if (source->length == 0) {
+        return 1;
+    }
+    if (source->bytes == NULL) {
+        return 0;
+    }
+
+    allocateRastaByteArray(destination, source->length);
+    if (destination->bytes == NULL) {
+        destination->length = 0;
+        return 0;
+    }
+
+    rmemcpy(destination->bytes, source->bytes, source->length);
+    return 1;
+}
+
+static struct RastaRedundancyPacket *copy_packet(
+    const struct RastaRedundancyPacket *source
+) {
+    struct RastaRedundancyPacket *copy;
+
+    if (source == NULL) {
+        return NULL;
+    }
+
+    copy = rmalloc(sizeof(*copy));
+    if (copy == NULL) {
+        return NULL;
+    }
+
+    *copy = *source;
+    copy->data.data.bytes = NULL;
+    copy->data.data.length = 0;
+    copy->data.checksum.bytes = NULL;
+    copy->data.checksum.length = 0;
+
+    if (!copy_byte_array(&copy->data.data, &source->data.data) ||
+        !copy_byte_array(&copy->data.checksum, &source->data.checksum)) {
+        free_packet_copy(copy);
+        return NULL;
+    }
+
+    return copy;
+}
+
+static void clear_elements(struct defer_queue *queue) {
+    for (unsigned int i = 0; i < queue->count; ++i) {
+        free_packet_copy(queue->elements[i].packet);
+        queue->elements[i].packet = NULL;
+        queue->elements[i].received_timestamp = 0;
+    }
+    queue->count = 0;
+}
 
 /**
  * finds the index of a given element inside the given queue.
@@ -9,33 +82,37 @@
  * @param seq_nr the sequence number to be located
  * @return -1 if there is no element with the specified @p seq_nr, index of the element otherwise
  */
-int find_index(struct defer_queue * queue, unsigned long seq_nr){
-    uint32_t index = 0;
-    // Check is now required because queue stored pointers!
-    if(!queue->elements[index].packet)
-        return -1;
+static int find_index(const struct defer_queue *queue, unsigned long seq_nr) {
+    for (unsigned int i = 0; i < queue->count; ++i) {
+        if (queue->elements[i].packet != NULL &&
+            queue->elements[i].packet->sequence_number == seq_nr) {
+            return (int)i;
+        }
+    }
 
-    // naive implementation of search. performance shouldn't be an issue as the amount of messages in the queue is small
-    uint32_t sequeceNrCMP = queue->elements[index].packet->sequence_number;
-    uint32_t maxCount = queue->max_count;
-    while ( index < maxCount && sequeceNrCMP != seq_nr ) ++index;
-
-    return ( index == queue->max_count ? -1 : (int)index );
+    return -1;
 }
 
-int cmpfkt(const void * a, const void * b){
-    long long a_ts = (long long)((struct rasta_redundancy_packet_wrapper*)a)->received_timestamp;
-    long long b_ts = (long long)((struct rasta_redundancy_packet_wrapper*)b)->received_timestamp;
+static int compare_timestamps(const void *a, const void *b) {
+    const struct rasta_redundancy_packet_wrapper *left = a;
+    const struct rasta_redundancy_packet_wrapper *right = b;
 
-    return (int) (a_ts - b_ts);
+    if (left->received_timestamp < right->received_timestamp) {
+        return -1;
+    }
+    if (left->received_timestamp > right->received_timestamp) {
+        return 1;
+    }
+    return 0;
 }
 
 /**
  * sorts the elements in the queue in ascending time (first element has oldest timestamp)
  * @param queue the queue that will be sorted
  */
-void sort(struct defer_queue * queue){
-    qsort(queue->elements, queue->count, sizeof(struct rasta_redundancy_packet_wrapper), cmpfkt);
+static void sort(struct defer_queue *queue) {
+    qsort(queue->elements, queue->count,
+          sizeof(struct rasta_redundancy_packet_wrapper), compare_timestamps);
 }
 
 void defer_queue_init(struct defer_queue *queue, unsigned int n_max) {
@@ -58,7 +135,7 @@ int deferqueue_isfull(struct defer_queue * queue){
     // acquire lock
     pthread_mutex_lock(&queue->mutex);
 
-    int result = (queue->count == queue->max_count);
+    int result = (queue->count >= queue->max_count);
 
     // free lock
     pthread_mutex_unlock(&queue->mutex);
@@ -67,18 +144,27 @@ int deferqueue_isfull(struct defer_queue * queue){
 }
 
 void deferqueue_add(struct defer_queue * queue, struct RastaRedundancyPacket *packet, unsigned long recv_ts){
+    struct RastaRedundancyPacket *packet_copy;
+
     // acquire lock
     // TODO Mutex reintroduced
     pthread_mutex_lock(&queue->mutex);
 
-    if(queue->count == queue->max_count){
-        // queue full, return
+    if(packet == NULL || queue->count >= queue->max_count ||
+       find_index(queue, packet->sequence_number) != -1){
+        // queue full or duplicate sequence number, return
+        pthread_mutex_unlock(&queue->mutex);
+        return;
+    }
+
+    packet_copy = copy_packet(packet);
+    if (packet_copy == NULL) {
         pthread_mutex_unlock(&queue->mutex);
         return;
     }
 
     struct rasta_redundancy_packet_wrapper element;
-    element.packet = packet;
+    element.packet = packet_copy;
     element.received_timestamp = recv_ts;
 
     // add element to the end
@@ -105,15 +191,18 @@ void deferqueue_remove(struct defer_queue * queue, unsigned long seq_nr){
         return;
     }
 
-    if(index != (int)(queue->count - 1)){
+    unsigned int last_index = queue->count - 1;
+    free_packet_copy(queue->elements[index].packet);
+
+    if(index != (int)last_index){
         // element to delete isn't at the last position
         // to be able to add the next element to the last position without overriding something
         // the currently last element is moved to the index where the element to delete is located
-        queue->elements[index] = queue->elements[queue->count-1];
+        queue->elements[index] = queue->elements[last_index];
     }
 
-    // free last element
-    freeRastaByteArray(&queue->elements[queue->count -1].packet->data.data);
+    queue->elements[last_index].packet = NULL;
+    queue->elements[last_index].received_timestamp = 0;
 
     // decrease counter
     queue->count = queue->count -1;
@@ -138,10 +227,13 @@ int deferqueue_contains(struct defer_queue * queue, unsigned long seq_nr){
 }
 
 void deferqueue_destroy(struct defer_queue * queue){
+    pthread_mutex_lock(&queue->mutex);
+    clear_elements(queue);
     rfree(queue->elements);
+    queue->elements = NULL;
 
-    queue->count = 0;
     queue->max_count= 0;
+    pthread_mutex_unlock(&queue->mutex);
 
     pthread_mutex_destroy(&queue->mutex);
 }
@@ -150,14 +242,15 @@ int deferqueue_smallest_seqnr(struct defer_queue * queue){
     // acquire lock
     pthread_mutex_lock(&queue->mutex);
 
-    int index = 0;
+    int index = -1;
 
-    // largest number possible
-    unsigned long smallest = 0xFFFFFFFF;
+    uint32_t smallest = 0;
 
     // naive implementation of search. performance shouldn't be an issue as the amount of messages in the queue is small
-    for (unsigned int i = 0; i < queue->max_count; ++i) {
-        if(queue->elements[i].packet->sequence_number < smallest){
+    for (unsigned int i = 0; i < queue->count; ++i) {
+        if(queue->elements[i].packet != NULL &&
+           (index == -1 ||
+            queue->elements[i].packet->sequence_number < smallest)){
             smallest = queue->elements[i].packet->sequence_number;
             index = (int)i;
         }
@@ -214,8 +307,7 @@ void deferqueue_clear(struct defer_queue * queue){
     // acquire lock
     pthread_mutex_lock(&queue->mutex);
 
-    // just set count to 0, elements that are in the queue will be overridden
-    queue->count = 0;
+    clear_elements(queue);
 
     // free lock
     pthread_mutex_unlock(&queue->mutex);

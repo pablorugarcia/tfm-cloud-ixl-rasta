@@ -69,7 +69,9 @@ void deferqueue_destroy(struct defer_queue * queue);
  * adds an element to the queue if the queue is not full and the element isn't already in the queue.
  * The sequence_number of the element is used as an unique identifier
  * @param queue the queue where the @p element will be added
- * @param packet the element that will be added
+ * The queue owns an independent deep copy; the caller retains ownership of
+ * @p packet and may release it after this function returns.
+ * @param packet the element that will be copied into the queue
  * @param recv_ts the timestamp when the @p element was received
  */
 void deferqueue_add(struct defer_queue * queue, struct RastaRedundancyPacket *packet, unsigned long recv_ts);
@@ -99,7 +101,8 @@ int deferqueue_isfull(struct defer_queue * queue);
 /**
  * finds the element with the smallest sequence_number
  * @param queue the queue that will be searched
- * @return the index of the element with the smallest sequence_number
+ * @return the index of the element with the smallest sequence_number, or -1
+ * if the queue is empty
  */
 int deferqueue_smallest_seqnr(struct defer_queue * queue);
 
@@ -107,8 +110,9 @@ int deferqueue_smallest_seqnr(struct defer_queue * queue);
  * gets the element with the specified sequence_number out of in the defer queue
  * @param queue the queue that will be used
  * @param seq_nr the sequence_number that is searched for
- * @return the element with the given @p seq_nr if the element exists in the queue.
- * Otherwise an uninitialized struct will be returned! check with contains beforehand
+ * The returned struct borrows its byte arrays from the queue and is only valid
+ * until that queue element is removed or the queue is cleared.
+ * Otherwise a zero-initialized struct is returned.
  */
 void
 deferqueue_get(struct RastaRedundancyPacket *result, struct defer_queue *queue, unsigned long seq_nr);

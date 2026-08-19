@@ -97,6 +97,9 @@ size_t udp_receive(int file_descriptor, unsigned char *received_message, size_t 
     // wait for incoming data
     if ((recv_len = recvfrom(file_descriptor, received_message, max_buffer_len, 0, (struct sockaddr *) sender, &sender_len)) == -1)
     {
+        if (errno == EBADF || errno == EINVAL || errno == ENOTCONN || errno == ENOTSOCK) {
+            return 0;
+        }
         printError("udp.c:%d:: An error occurred while trying to receive data", __LINE__);
         exit(1);
     }
@@ -147,7 +150,6 @@ int udp_init() {
 void sockaddr_to_host(struct sockaddr_in sockaddr, char* host){
     inet_ntop(AF_INET, &(sockaddr.sin_addr), host, IPV4_STR_LEN);
 }
-
 
 
 
