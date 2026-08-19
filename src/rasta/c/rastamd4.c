@@ -248,7 +248,7 @@ void generateMD4(unsigned char* data, int length, int type, unsigned char* resul
 }
 
 void generateMD4WithVector(unsigned char* data, int length, int type, MD4_CONTEXT* context, unsigned char* result) {
-    unsigned char MD4code[type == 2 ? 16 : 8];
+    unsigned char MD4code[16];
 #ifdef USE_OPENSSL
     MD4_Update (context, data, length);
     MD4_Final (MD4code, context);
