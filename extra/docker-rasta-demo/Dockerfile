@@ -6,7 +6,6 @@ COPY src/rasta /opt/rasta-c/src/rasta
 COPY src/sci /opt/rasta-c/src/sci
 COPY src/cloud_ixl /opt/rasta-c/src/cloud_ixl
 COPY src/sci_ls_icd /opt/rasta-c/src/sci_ls_icd
-COPY src/oc_simulator /opt/rasta-c/src/oc_simulator
 
 # Copy only the optional examples and configurations used by this image.
 COPY extra/examples /opt/rasta-c/extra/examples

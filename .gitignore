@@ -8,7 +8,7 @@ lst_simulator.cbp
 CUnitAutomated-Listing.xml
 CUnitAutomated-Results.xml
 
-build
+build*
 ubuntu-xenial*
 \.idea/
 cmake-build-debug/
@@ -21,11 +21,11 @@ assets/usr
 *.d
 
 # exclude documentation files
-doc/
+docs/
+
+results*
 
 # scils_rasta_dependency_atlas.html
 *:Zone.Identifier
 
 pedro/
-
-docs/thesis/

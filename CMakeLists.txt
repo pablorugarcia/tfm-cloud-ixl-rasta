@@ -6,7 +6,6 @@ set(CMAKE_C_STANDARD 11)
 SET(USE_OPENSSL false CACHE BOOL "Use OpenSSL MD4 implementation")
 
 # Optional targets: none of these are required for the main Cloud IXL -> OC connection. They remain available for laboratory diagnostics and examples, but are excluded from the default TFM build.
-option(BUILD_OC_SIMULATOR "Build the local Object Controller simulator" OFF)
 option(BUILD_SCIP_SUPPORT "Build optional SCI-P support for point controllers" OFF)
 option(BUILD_LOCAL_EXAMPLES "Build the optional localhost examples" OFF)
 option(BUILD_REMOTE_EXAMPLES "Build the optional network examples" OFF)
@@ -158,22 +157,6 @@ target_compile_options(cloud_ixl PRIVATE
 
 configure_file(config/rasta_client1_lab.cfg rasta_client1_lab.cfg COPYONLY)
 
-# OPTIONAL: useful for a self-contained local test, but not used when Cloud IXL
-# connects by IP to Pedro's real or separately executed Object Controller.
-if(BUILD_OC_SIMULATOR)
-    add_executable(oc_simulator
-            src/oc_simulator/c/main.c
-    )
-
-    target_link_libraries(oc_simulator rasta sci_ls_icd)
-
-    target_compile_options(oc_simulator PRIVATE
-            -Wall
-            -Wextra
-            -Wpedantic
-            -Werror
-    )
-endif()
 # ----- End of Master Thesis Part -----
 
 # OPTIONAL: standalone localhost examples from extra/examples/. They do not

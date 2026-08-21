@@ -21,7 +21,7 @@
 #include <sci_telegram_factory.h>
 
 #define PDI_VERSION 0x05U
-#define PDI_GLOBAL_TIMEOUT_SECONDS 10
+#define PDI_GLOBAL_TIMEOUT_SECONDS 11
 
 #define DEFAULT_CONFIG_PATH "config/rasta_client1_lab.cfg"
 #define DEFAULT_OC_CH1_IP "192.168.0.152"
@@ -176,19 +176,15 @@ static void cleanup_pdi_resources(struct rasta_handle *handle)
 
 static bool set_global_timeout_deadline(struct timespec *deadline)
 {
-    time_t now;
-
     if (deadline == NULL) {
         return false;
     }
 
-    now = time(NULL);
-    if (now == (time_t)-1) {
+    if (clock_gettime(CLOCK_REALTIME, deadline) != 0) {
         return false;
     }
 
-    deadline->tv_sec = now + PDI_GLOBAL_TIMEOUT_SECONDS;
-    deadline->tv_nsec = 0;
+    deadline->tv_sec += PDI_GLOBAL_TIMEOUT_SECONDS;
 
     return true;
 }
@@ -632,7 +628,8 @@ static void on_connection_change(struct rasta_notification_result *result){
         case RASTA_CONNECTION_CLOSED:
             printf("CLOSED\n");
             pthread_mutex_lock(&confirmation_lock);
-            if (pdi_state == PDI_WAIT_CONFIRMATION) {
+            if (pdi_state == PDI_WAIT_CONFIRMATION ||
+                pdi_state == PDI_FAILED) {
                 fail_pending_signal_confirmation_locked();
             } else {
                 set_pdi_state_locked(PDI_DISCONNECTED);
